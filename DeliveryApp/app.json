@@ -1,4 +1,8 @@
 {
   "name": "DeliveryApp",
-  "displayName": "DeliveryApp"
+  "displayName": "DeliveryApp",
+  "expo": {
+    "name": "DeliveryApp",
+    "slug": "DeliveryApp"
+  }
 }
