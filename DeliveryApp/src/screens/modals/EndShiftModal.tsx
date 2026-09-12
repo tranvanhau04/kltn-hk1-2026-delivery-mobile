@@ -44,7 +44,7 @@ export const EndShiftModal = () => {
       }
 
       navigation.goBack();
-    } catch (error) {
+    } catch {
       Alert.alert('Lỗi', 'Không thể đóng ca trên hệ thống. Vui lòng thử lại sau.');
     } finally {
       setIsSubmitting(false);

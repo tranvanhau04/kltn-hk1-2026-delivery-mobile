@@ -27,7 +27,7 @@ export const HomeScreen = () => {
       try {
         await startDriverShift(driver.user_id);
         setDriver({ ...driver, current_shift_status: 'ONLINE_READY' });
-      } catch (error) {
+      } catch {
         Alert.alert('Lỗi', 'Không thể mở ca trên hệ thống. Vui lòng thử lại sau.');
       }
     }

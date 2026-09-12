@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Animated,
   Easing,
-  Linking,
   Alert,
   ScrollView,
   Platform,
@@ -23,7 +22,6 @@ import {
   Clock,
   Route as RouteIcon,
   Locate,
-  Navigation2,
 } from 'lucide-react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { MainTabParamList } from '../../navigation/MainTabNavigator';
@@ -70,7 +68,7 @@ export const TrackScreen = () => {
   const tabRoute = useRoute<RouteProp<MainTabParamList, 'Track'>>();
   const navParams = tabRoute.params;
 
-  const [isNavigating, setIsNavigating] = useState(false);
+  const [_isNavigating, setIsNavigating] = useState(false);
   const [navCoords, setNavCoords] = useState<[number, number][]>([]);
   const [navDistanceKm, setNavDistanceKm] = useState<number | null>(null);
   const [navDurationMin, setNavDurationMin] = useState<number | null>(null);
@@ -116,7 +114,7 @@ export const TrackScreen = () => {
       };
       fetchRoute();
     }
-  }, [navParams?.autoStartNavigation, navParams?.destLat, navParams?.destLng, driverCoord?.latitude]);
+  }, [navParams?.autoStartNavigation, navParams?.destLat, navParams?.destLng, driverCoord]);
 
   // ─── Request GPS permission on mount ─────────────────────────────────────
   useEffect(() => {
@@ -160,7 +158,7 @@ export const TrackScreen = () => {
       setCachedPings(p => p + 1);
       setLastSyncSuccess(false);
     }
-  }, [locationPermission, isNavigating]);
+  }, [locationPermission]);
 
   useEffect(() => {
     if (locationPermission !== 'granted') return;

@@ -58,7 +58,6 @@ export const StopListScreen = () => {
         contentContainerStyle={{ padding: SIZES.padding_md }}
         renderItem={({ item }) => {
           const isDone = item.status === 'COMPLETED' || item.status === 'FAILED';
-          const isPending = item.status === 'PENDING';
           const isArrived = item.status === 'ARRIVED';
 
           return (
