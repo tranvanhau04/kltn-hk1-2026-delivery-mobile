@@ -12,9 +12,9 @@ export const PermissionScreen = () => {
   return (
     <SafeAreaView style={COMMON_STYLES.container} edges={['top', 'bottom']}>
       <View style={styles.content}>
-        <Text style={[TYPOGRAPHY.header, { fontSize: 28, marginBottom: 12 }]}>App Permissions</Text>
+        <Text style={[TYPOGRAPHY.header, { fontSize: 28, marginBottom: 12 }]}>Quyền Ứng Dụng</Text>
         <Text style={[TYPOGRAPHY.bodySecondary, { marginBottom: 32 }]}>
-          LogisticsPro requires the following permissions to function correctly during your shifts.
+          LogisticsPro yêu cầu các quyền sau để hoạt động chính xác trong suốt ca làm việc của bạn.
         </Text>
 
         <View style={COMMON_STYLES.card}>
@@ -23,8 +23,8 @@ export const PermissionScreen = () => {
               <MapPin color={COLORS.primary} size={24} />
             </View>
             <View style={styles.textContainer}>
-              <Text style={TYPOGRAPHY.title}>Location Services</Text>
-              <Text style={TYPOGRAPHY.bodySecondary}>Used for route tracking and map navigation</Text>
+              <Text style={TYPOGRAPHY.title}>Dịch vụ Vị trí</Text>
+              <Text style={TYPOGRAPHY.bodySecondary}>Dùng để theo dõi tuyến đường và điều hướng</Text>
             </View>
             <Switch
               value={location}
@@ -40,8 +40,8 @@ export const PermissionScreen = () => {
               <Camera color={COLORS.primary} size={24} />
             </View>
             <View style={styles.textContainer}>
-              <Text style={TYPOGRAPHY.title}>Camera Access</Text>
-              <Text style={TYPOGRAPHY.bodySecondary}>Required for capturing POD and failure evidence</Text>
+              <Text style={TYPOGRAPHY.title}>Truy cập Máy ảnh</Text>
+              <Text style={TYPOGRAPHY.bodySecondary}>Yêu cầu để chụp POD và bằng chứng thất bại</Text>
             </View>
             <Switch
               value={camera}
@@ -57,8 +57,8 @@ export const PermissionScreen = () => {
               <Bell color={COLORS.primary} size={24} />
             </View>
             <View style={styles.textContainer}>
-              <Text style={TYPOGRAPHY.title}>Push Notifications</Text>
-              <Text style={TYPOGRAPHY.bodySecondary}>Updates about new assigned routes and messages</Text>
+              <Text style={TYPOGRAPHY.title}>Thông báo Đẩy</Text>
+              <Text style={TYPOGRAPHY.bodySecondary}>Cập nhật về các tuyến được giao mới và tin nhắn</Text>
             </View>
             <Switch
               value={notifications}
@@ -71,7 +71,7 @@ export const PermissionScreen = () => {
 
       <View style={styles.footer}>
         <TouchableOpacity style={COMMON_STYLES.primaryButton}>
-          <Text style={TYPOGRAPHY.buttonText}>GRANT PERMISSIONS</Text>
+          <Text style={TYPOGRAPHY.buttonText}>CẤP QUYỀN</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

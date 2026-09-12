@@ -360,3 +360,105 @@
 {"_e":"metro:bundling:progress","_t":1788958029342,"id":"4","progress":0,"total":1,"current":0}
 {"_e":"metro:bundling:done","_t":1788958029479,"id":"4","total":1,"ms":137.0715}
 {"_e":"metro:client_log","_t":1788958045338,"level":"warn","data":["The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation."]}
+{"_e":"root:init","_t":1789185153723,"format":"v0-jsonl","version":"57.0.22"}
+{"_e":"env:mode","_t":1789185153758,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1789185153778,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1789185158164,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1789185165005,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1789185169293,"plugins":[]}
+{"_e":"metro:instantiate","_t":1789185183880,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1789185348727,"id":"1","platform":"android","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1789185348727,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789185348735,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789185348835,"id":"1","progress":0.006315512477522916,"total":151,"current":12}
+{"_e":"metro:bundling:progress","_t":1789185348935,"id":"1","progress":0.11731973463946928,"total":254,"current":87}
+{"_e":"metro:bundling:progress","_t":1789185349035,"id":"1","progress":0.20514215048333106,"total":393,"current":178}
+{"_e":"metro:bundling:progress","_t":1789185349135,"id":"1","progress":0.2864798185941044,"total":525,"current":281}
+{"_e":"metro:bundling:progress","_t":1789185349287,"id":"1","progress":0.32921257726417624,"total":610,"current":350}
+{"_e":"metro:bundling:progress","_t":1789185349387,"id":"1","progress":0.32921257726417624,"total":2420,"current":353}
+{"_e":"metro:bundling:progress","_t":1789185349487,"id":"1","progress":0.32921257726417624,"total":2471,"current":458}
+{"_e":"metro:bundling:progress","_t":1789185349587,"id":"1","progress":0.32921257726417624,"total":2492,"current":518}
+{"_e":"metro:bundling:progress","_t":1789185349655,"id":"1","progress":0.32921257726417624,"total":2492,"current":519}
+{"_e":"metro:bundling:progress","_t":1789185349756,"id":"1","progress":0.32921257726417624,"total":2558,"current":593}
+{"_e":"metro:bundling:progress","_t":1789185349839,"id":"1","progress":0.32921257726417624,"total":2558,"current":594}
+{"_e":"metro:bundling:progress","_t":1789185349939,"id":"1","progress":0.32921257726417624,"total":2586,"current":1383}
+{"_e":"metro:bundling:progress","_t":1789185350039,"id":"1","progress":0.5570030547017105,"total":2586,"current":1930}
+{"_e":"metro:bundling:progress","_t":1789185350140,"id":"1","progress":0.8932643483454265,"total":2606,"current":2463}
+{"_e":"metro:bundling:progress","_t":1789185350241,"id":"1","progress":0.9205332416563949,"total":2663,"current":2555}
+{"_e":"metro:bundling:progress","_t":1789185350341,"id":"1","progress":0.9369111582244253,"total":2745,"current":2657}
+{"_e":"metro:bundling:progress","_t":1789185350466,"id":"1","progress":0.958286408877973,"total":2799,"current":2740}
+{"_e":"metro:bundling:progress","_t":1789185350566,"id":"1","progress":0.9652082053458468,"total":2906,"current":2855}
+{"_e":"metro:bundling:progress","_t":1789185350676,"id":"1","progress":0.9972668273796479,"total":2925,"current":2921}
+{"_e":"metro:bundling:progress","_t":1789185354066,"id":"1","progress":0.9979497698882314,"total":2925,"current":2922}
+{"_e":"metro:bundling:progress","_t":1789185354167,"id":"1","progress":0.9986348124458201,"total":2929,"current":2927}
+{"_e":"metro:bundling:progress","_t":1789185354277,"id":"1","progress":0.9986348124458201,"total":2953,"current":2929}
+{"_e":"metro:bundling:progress","_t":1789185354405,"id":"1","progress":0.9986348124458201,"total":2957,"current":2936}
+{"_e":"metro:bundling:progress","_t":1789185354506,"id":"1","progress":0.9986348124458201,"total":2962,"current":2944}
+{"_e":"metro:bundling:progress","_t":1789185354605,"id":"1","progress":0.9986348124458201,"total":2963,"current":2953}
+{"_e":"metro:bundling:progress","_t":1789185354711,"id":"1","progress":0.9986348124458201,"total":2971,"current":2958}
+{"_e":"metro:bundling:progress","_t":1789185354824,"id":"1","progress":0.9986541051322892,"total":2971,"current":2969}
+{"_e":"metro:bundling:progress","_t":1789185355213,"id":"1","progress":0.999,"total":2971,"current":2970}
+{"_e":"metro:bundling:done","_t":1789185355438,"id":"1","total":2971,"ms":6711.4245}
+{"_e":"metro:client_log","_t":1789185388351,"level":"warn","data":["The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation."]}
+{"_e":"metro:bundling:started","_t":1789186477083,"id":"4","platform":"android","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1789186477084,"id":"4","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1789186477235,"id":"4","total":1,"ms":151.3227}
+{"_e":"metro:client_log","_t":1789186491231,"level":"warn","data":["The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation."]}
+{"_e":"metro:bundling:started","_t":1789187881247,"id":"6","platform":"android","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1789187881247,"id":"6","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1789187881347,"id":"6","total":1,"ms":100.1003}
+{"_e":"metro:client_log","_t":1789187900863,"level":"warn","data":["The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation."]}
+{"_e":"metro:bundling:started","_t":1789188163305,"id":"8","platform":"android","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1789188163305,"id":"8","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1789188163374,"id":"8","total":1,"ms":69.0022}
+{"_e":"metro:client_log","_t":1789188181788,"level":"warn","data":["The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation."]}
+{"_e":"metro:bundling:started","_t":1789188563955,"id":"a","platform":"android","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1789188563957,"id":"a","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1789188564037,"id":"a","total":1,"ms":79.6831}
+{"_e":"metro:client_log","_t":1789188584227,"level":"warn","data":["The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation."]}
+{"_e":"metro:bundling:started","_t":1789191759122,"id":"c","platform":"android","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1789191759125,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789191759205,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789191759309,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789191759567,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789191760217,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789191760317,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789191760417,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789191760517,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789191760646,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789191760746,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789191760866,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789191760973,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789191761213,"id":"c","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1789191761357,"id":"c","total":1,"ms":2232.4794}
+{"_e":"metro:client_log","_t":1789191778703,"level":"warn","data":["The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation."]}
+{"_e":"metro:bundling:started","_t":1789193553110,"id":"e","platform":"android","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1789193553111,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193553117,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193553308,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193553899,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193553999,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193554099,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193554199,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193554299,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193554403,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193554503,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193554670,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193554783,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193554967,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193555079,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193555201,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789193555311,"id":"e","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1789193555460,"id":"e","total":1,"ms":2348.4431}
+{"_e":"metro:client_log","_t":1789193594764,"level":"warn","data":["The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation."]}
+{"_e":"root:init","_t":1789193632001,"format":"v0-jsonl","version":"57.0.22"}
+{"_e":"env:mode","_t":1789193632002,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1789193632005,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1789193635466,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1789193639141,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1789193642631,"plugins":[]}
+{"_e":"metro:instantiate","_t":1789193656808,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1789194200151,"id":"2","platform":"android","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1789194200153,"id":"2","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1789194201765,"id":"2","total":1,"ms":1613.3138}
+{"_e":"metro:client_log","_t":1789194217982,"level":"warn","data":["The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation."]}

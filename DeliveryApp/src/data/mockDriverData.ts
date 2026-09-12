@@ -1,7 +1,7 @@
 import { Driver, Shift, Route, Stop } from '../types/mobile';
 
 export const MOCK_DRIVER: Driver = {
-  user_id: 'drv_001',
+  user_id: 'u0000000-0000-0000-0000-000000000101',
   name: 'Ngô Văn Tài',
   license_plate: '59G1-987.65',
   vehicle_type: 'Xe máy',
@@ -12,7 +12,7 @@ export const MOCK_DRIVER: Driver = {
 
 export const MOCK_SHIFT: Shift = {
   id: 'shift_123',
-  driver_id: 'drv_001',
+  driver_id: 'u0000000-0000-0000-0000-000000000101',
   start_time: new Date().toISOString(),
   end_time: null,
   status: 'OPEN',
@@ -22,7 +22,7 @@ export const MOCK_SHIFT: Shift = {
 
 export const MOCK_ROUTE: Route = {
   id: 'route_456',
-  driver_id: 'drv_001',
+  driver_id: 'u0000000-0000-0000-0000-000000000101',
   route_date: new Date().toISOString().split('T')[0],
   total_distance_km: 12.5,
   total_estimated_time_min: 120,

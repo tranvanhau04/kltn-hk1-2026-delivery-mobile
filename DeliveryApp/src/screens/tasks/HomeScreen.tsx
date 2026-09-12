@@ -9,18 +9,27 @@ import { useAppContext } from '../../context/AppContext';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 
+import { startDriverShift } from '../../lib/api';
+import { Alert } from 'react-native';
+
 export const HomeScreen = () => {
   const { driver, shift, stops, setDriver } = useAppContext();
   const navigation = useNavigation<NativeStackNavigationProp<TaskStackParamList & RootStackParamList>>();
 
   const isOnline = driver.current_shift_status === 'ONLINE_READY' || driver.current_shift_status === 'BUSY';
 
-  const handleToggleShift = (value: boolean) => {
+  const handleToggleShift = async (value: boolean) => {
     if (!value) {
       // Going offline triggers EndShiftModal
       navigation.navigate('EndShiftModal');
     } else {
-      setDriver({ ...driver, current_shift_status: 'ONLINE_READY' });
+      if (!driver?.user_id) return;
+      try {
+        await startDriverShift(driver.user_id);
+        setDriver({ ...driver, current_shift_status: 'ONLINE_READY' });
+      } catch (error) {
+        Alert.alert('Lỗi', 'Không thể mở ca trên hệ thống. Vui lòng thử lại sau.');
+      }
     }
   };
 
@@ -34,7 +43,7 @@ export const HomeScreen = () => {
         {/* Header */}
         <View style={styles.headerRow}>
           <View>
-            <Text style={TYPOGRAPHY.bodySecondary}>Good Morning,</Text>
+            <Text style={TYPOGRAPHY.bodySecondary}>Chào buổi sáng,</Text>
             <Text style={TYPOGRAPHY.header}>{driver.name}</Text>
           </View>
           <TouchableOpacity style={styles.iconButton}>
@@ -46,9 +55,9 @@ export const HomeScreen = () => {
         <View style={COMMON_STYLES.card}>
           <View style={styles.shiftCardContent}>
             <View>
-              <Text style={TYPOGRAPHY.title}>Shift Status</Text>
+              <Text style={TYPOGRAPHY.title}>Trạng thái ca làm</Text>
               <Text style={isOnline ? styles.onlineText : styles.offlineText}>
-                {isOnline ? 'ONLINE' : 'OFFLINE'}
+                {isOnline ? 'TRỰC TUYẾN' : 'NGOẠI TUYẾN'}
               </Text>
             </View>
             <Switch
@@ -62,17 +71,17 @@ export const HomeScreen = () => {
         </View>
 
         {/* Summary Cards */}
-        <Text style={[TYPOGRAPHY.title, { marginBottom: SIZES.padding_sm, marginTop: SIZES.padding_sm }]}>Today's Summary</Text>
+        <Text style={[TYPOGRAPHY.title, { marginBottom: SIZES.padding_sm, marginTop: SIZES.padding_sm }]}>Tóm tắt hôm nay</Text>
         <View style={styles.summaryGrid}>
           <View style={[COMMON_STYLES.card, styles.summaryCard]}>
             <Package color={COLORS.primary} size={24} />
             <Text style={styles.summaryValue}>{assignedStops}</Text>
-            <Text style={TYPOGRAPHY.bodySecondary}>Assigned</Text>
+            <Text style={TYPOGRAPHY.bodySecondary}>Đã phân công</Text>
           </View>
           <View style={[COMMON_STYLES.card, styles.summaryCard]}>
             <CheckCircle color={COLORS.success} size={24} />
             <Text style={styles.summaryValue}>{completedStops}</Text>
-            <Text style={TYPOGRAPHY.bodySecondary}>Completed</Text>
+            <Text style={TYPOGRAPHY.bodySecondary}>Đã hoàn thành</Text>
           </View>
         </View>
 
@@ -80,7 +89,7 @@ export const HomeScreen = () => {
           <View style={styles.codRow}>
             <Wallet color={COLORS.primary} size={24} style={{ marginRight: 12 }} />
             <View>
-              <Text style={TYPOGRAPHY.bodySecondary}>Total COD Cash</Text>
+              <Text style={TYPOGRAPHY.bodySecondary}>Tổng tiền mặt COD</Text>
               <Text style={styles.codValue}>{totalCod.toLocaleString('vi-VN')} VND</Text>
             </View>
           </View>
@@ -92,7 +101,7 @@ export const HomeScreen = () => {
             style={[COMMON_STYLES.primaryButton, { marginTop: SIZES.padding_lg }]}
             onPress={() => navigation.navigate('StopList')}
           >
-            <Text style={TYPOGRAPHY.buttonText}>VIEW ACTIVE ROUTE</Text>
+            <Text style={TYPOGRAPHY.buttonText}>XEM TUYẾN ĐANG CHẠY</Text>
             <ArrowRight color="#FFF" size={20} style={{ marginLeft: 8 }} />
           </TouchableOpacity>
         )}

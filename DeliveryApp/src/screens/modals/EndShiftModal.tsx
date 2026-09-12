@@ -7,6 +7,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
 import { RootStackParamList } from '../../navigation/RootNavigator';
+import { endDriverShift } from '../../lib/api';
+import { Alert } from 'react-native';
 
 export const EndShiftModal = () => {
   const { shift, stops, setDriver, setShift, driver } = useAppContext();
@@ -14,76 +16,88 @@ export const EndShiftModal = () => {
 
   const [codSubmitted, setCodSubmitted] = useState<string>('');
   const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const assigned = stops.length;
   const delivered = stops.filter(s => s.status === 'COMPLETED').length;
   const failed = stops.filter(s => s.status === 'FAILED').length;
   const systemCod = shift?.cod_collected || 0;
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (!driver?.user_id) return;
+    
+    setIsSubmitting(true);
     const submittedAmount = parseInt(codSubmitted.replace(/\D/g, ''), 10) || 0;
     
-    // Update state
-    setDriver({ ...driver, current_shift_status: 'OFFLINE' });
-    if (shift) {
-      setShift({
-        ...shift,
-        status: 'PENDING_SETTLEMENT',
-        cod_submitted: submittedAmount,
-        end_time: new Date().toISOString()
-      });
-    }
+    try {
+      await endDriverShift(driver.user_id, submittedAmount, notes);
+      
+      // Update local state only after successful API call
+      setDriver({ ...driver, current_shift_status: 'OFFLINE' });
+      if (shift) {
+        setShift({
+          ...shift,
+          status: 'PENDING_SETTLEMENT',
+          cod_submitted: submittedAmount,
+          end_time: new Date().toISOString()
+        });
+      }
 
-    navigation.goBack();
+      navigation.goBack();
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể đóng ca trên hệ thống. Vui lòng thử lại sau.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <SafeAreaView style={[COMMON_STYLES.container, { backgroundColor: '#F3F4F6' }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={TYPOGRAPHY.header}>End Shift Settlement</Text>
+        <Text style={TYPOGRAPHY.header}>Chốt ca làm việc</Text>
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={{ padding: SIZES.padding_md, paddingBottom: 120 }}>
           
           <View style={COMMON_STYLES.card}>
-            <Text style={TYPOGRAPHY.title}>Shift Performance</Text>
+            <Text style={TYPOGRAPHY.title}>Hiệu suất ca làm</Text>
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
                 <Text style={TYPOGRAPHY.header}>{assigned}</Text>
-                <Text style={TYPOGRAPHY.bodySecondary}>Assigned</Text>
+                <Text style={TYPOGRAPHY.bodySecondary}>Đã phân công</Text>
               </View>
               <View style={styles.statBox}>
                 <Text style={[TYPOGRAPHY.header, { color: COLORS.success }]}>{delivered}</Text>
-                <Text style={TYPOGRAPHY.bodySecondary}>Delivered</Text>
+                <Text style={TYPOGRAPHY.bodySecondary}>Đã giao</Text>
               </View>
               <View style={styles.statBox}>
                 <Text style={[TYPOGRAPHY.header, { color: COLORS.danger }]}>{failed}</Text>
-                <Text style={TYPOGRAPHY.bodySecondary}>Failed</Text>
+                <Text style={TYPOGRAPHY.bodySecondary}>Thất bại</Text>
               </View>
             </View>
           </View>
 
           <View style={COMMON_STYLES.card}>
-            <Text style={TYPOGRAPHY.title}>COD Settlement</Text>
+            <Text style={TYPOGRAPHY.title}>Chốt tiền COD</Text>
             <View style={styles.codRow}>
-              <Text style={TYPOGRAPHY.bodySecondary}>System Recorded Cash</Text>
+              <Text style={TYPOGRAPHY.bodySecondary}>Tiền mặt hệ thống ghi nhận</Text>
               <Text style={TYPOGRAPHY.title}>{systemCod.toLocaleString('vi-VN')} VND</Text>
             </View>
 
-            <Text style={[TYPOGRAPHY.body, { marginTop: 16, marginBottom: 8 }]}>Actual Cash Handed Over</Text>
+            <Text style={[TYPOGRAPHY.body, { marginTop: 16, marginBottom: 8 }]}>Tiền mặt thực tế nộp</Text>
             <TextInput
               style={styles.input}
               keyboardType="numeric"
-              placeholder="Enter amount (VND)"
+              placeholder="Nhập số tiền (VND)"
               value={codSubmitted}
               onChangeText={setCodSubmitted}
             />
 
-            <Text style={[TYPOGRAPHY.body, { marginTop: 16, marginBottom: 8 }]}>Notes (Discrepancies)</Text>
+            <Text style={[TYPOGRAPHY.body, { marginTop: 16, marginBottom: 8 }]}>Ghi chú (Nếu có chênh lệch)</Text>
             <TextInput
               style={styles.textArea}
-              placeholder="Explain any cash differences here..."
+              placeholder="Giải thích sự chênh lệch tại đây..."
               multiline
               numberOfLines={3}
               value={notes}
@@ -95,7 +109,7 @@ export const EndShiftModal = () => {
           <View style={styles.warningBanner}>
             <AlertTriangle color="#B45309" size={24} style={{ marginRight: 12 }} />
             <Text style={styles.warningText}>
-              After ending shift, you cannot deliver orders until a new shift is opened.
+              Sau khi kết thúc ca, bạn không thể giao hàng cho đến khi mở ca mới.
             </Text>
           </View>
 
@@ -103,11 +117,11 @@ export const EndShiftModal = () => {
       </KeyboardAvoidingView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>BACK</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} disabled={isSubmitting}>
+          <Text style={styles.backButtonText}>QUAY LẠI</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[COMMON_STYLES.primaryButton, { flex: 2 }]} onPress={handleConfirm}>
-          <Text style={TYPOGRAPHY.buttonText}>CONFIRM & CLOSE SHIFT</Text>
+        <TouchableOpacity style={[COMMON_STYLES.primaryButton, { flex: 2, opacity: isSubmitting ? 0.7 : 1 }]} onPress={handleConfirm} disabled={isSubmitting}>
+          <Text style={TYPOGRAPHY.buttonText}>{isSubmitting ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN & ĐÓNG CA'}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

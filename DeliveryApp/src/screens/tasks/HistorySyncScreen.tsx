@@ -19,17 +19,17 @@ export const HistorySyncScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <ArrowLeft color={COLORS.textPrimary} size={24} />
         </TouchableOpacity>
-        <Text style={TYPOGRAPHY.header}>Sync History</Text>
+        <Text style={TYPOGRAPHY.header}>Lịch sử đồng bộ</Text>
       </View>
 
       {/* Offline Banner */}
       <View style={styles.syncBanner}>
         <View style={styles.syncInfo}>
           <RefreshCw color="#D97706" size={20} />
-          <Text style={styles.syncText}>{offlineQueueCount} stops queued for offline sync</Text>
+          <Text style={styles.syncText}>{offlineQueueCount} điểm dừng chờ đồng bộ offline</Text>
         </View>
         <TouchableOpacity style={styles.syncButton}>
-          <Text style={styles.syncButtonText}>Sync Now</Text>
+          <Text style={styles.syncButtonText}>Đồng bộ ngay</Text>
         </TouchableOpacity>
       </View>
 
@@ -39,7 +39,7 @@ export const HistorySyncScreen = () => {
         contentContainerStyle={{ padding: SIZES.padding_md }}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={TYPOGRAPHY.bodySecondary}>No completed deliveries today</Text>
+            <Text style={TYPOGRAPHY.bodySecondary}>Không có đơn giao thành công hôm nay</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -49,12 +49,12 @@ export const HistorySyncScreen = () => {
               {item.status === 'COMPLETED' ? (
                 <View style={styles.statusBadgeSuccess}>
                   <CheckCircle2 color={COLORS.success} size={14} style={{ marginRight: 4 }} />
-                  <Text style={styles.statusTextSuccess}>DELIVERED</Text>
+                  <Text style={styles.statusTextSuccess}>ĐÃ GIAO</Text>
                 </View>
               ) : (
                 <View style={styles.statusBadgeFailed}>
                   <XCircle color={COLORS.danger} size={14} style={{ marginRight: 4 }} />
-                  <Text style={styles.statusTextFailed}>FAILED</Text>
+                  <Text style={styles.statusTextFailed}>THẤT BẠI</Text>
                 </View>
               )}
             </View>

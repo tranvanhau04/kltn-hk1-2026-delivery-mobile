@@ -24,10 +24,10 @@ export const LoginScreen = () => {
 
           <View style={styles.formContainer}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Phone or Email</Text>
+              <Text style={styles.label}>Số điện thoại hoặc Email</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your driver ID"
+                placeholder="Nhập mã tài xế của bạn"
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
@@ -35,11 +35,11 @@ export const LoginScreen = () => {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={styles.label}>Mật khẩu</Text>
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
-                  placeholder="Enter your password"
+                  placeholder="Nhập mật khẩu của bạn"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -55,17 +55,17 @@ export const LoginScreen = () => {
             </View>
 
             <TouchableOpacity style={styles.forgotPassword}>
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[COMMON_STYLES.primaryButton, { marginTop: 24 }]}>
-              <Text style={TYPOGRAPHY.buttonText}>LOG IN</Text>
+              <Text style={TYPOGRAPHY.buttonText}>ĐĂNG NHẬP</Text>
               <ArrowRight color="#FFF" size={20} style={{ marginLeft: 8 }} />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.biometricButton}>
               <Fingerprint color={COLORS.primary} size={20} style={{ marginRight: 8 }} />
-              <Text style={[TYPOGRAPHY.buttonText, { color: COLORS.primary }]}>USE BIOMETRICS</Text>
+              <Text style={[TYPOGRAPHY.buttonText, { color: COLORS.primary }]}>DÙNG SINH TRẮC HỌC</Text>
             </TouchableOpacity>
           </View>
         </View>

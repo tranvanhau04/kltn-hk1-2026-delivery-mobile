@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,11 @@ import {
   Linking,
   Alert,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
+import { OSMMapView } from '../../components/OSMMapView';
+import * as Location from 'expo-location';
 import {
   Navigation,
   Wifi,
@@ -19,12 +21,21 @@ import {
   CloudUpload,
   MapPin,
   Clock,
-  Route,
+  Route as RouteIcon,
   Locate,
-  ChevronRight,
+  Navigation2,
 } from 'lucide-react-native';
+import { useRoute, RouteProp } from '@react-navigation/native';
+import { MainTabParamList } from '../../navigation/MainTabNavigator';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
+import { postDriverLocation } from '../../lib/api';
+
+// Driver ID used for GPS tracking
+const ACTIVE_DRIVER_ID = 'u0000000-0000-0000-0000-000000000101';
+
+// How often to push GPS to backend (ms)
+const GPS_PUSH_INTERVAL_MS = 10000; // 10 seconds
 
 // ─── GPS Pulsating Dot ───────────────────────────────────────────────────────
 const PulsingDot = () => {
@@ -44,149 +55,175 @@ const PulsingDot = () => {
   );
 };
 
-// ─── Simulated Vector Map ────────────────────────────────────────────────────
-type MapStop = { x: number; y: number; label: number; status: 'done' | 'next' | 'upcoming' };
 
-const MAP_STOPS: MapStop[] = [
-  { x: 40, y: 180, label: 0, status: 'done' },   // Depot (start)
-  { x: 90, y: 130, label: 1, status: 'done' },
-  { x: 160, y: 100, label: 2, status: 'next' },
-  { x: 220, y: 150, label: 3, status: 'upcoming' },
-  { x: 290, y: 120, label: 4, status: 'upcoming' },
-  { x: 340, y: 70, label: 5, status: 'upcoming' },
-];
-
-const DRIVER_POS = { x: 160, y: 100 };
-
-const stopColor = (status: string) => {
-  if (status === 'done') return COLORS.success;
-  if (status === 'next') return COLORS.primary;
-  return '#9CA3AF';
-};
-
-const SimulatedMap = () => (
-  <View style={styles.mapContainer}>
-    <Svg width="100%" height="100%" viewBox="0 0 380 220">
-      {/* Street grid lines */}
-      {[40, 80, 120, 160, 200].map(y => (
-        <Line key={`h${y}`} x1="0" y1={y} x2="380" y2={y} stroke="#E5E7EB" strokeWidth="1" />
-      ))}
-      {[60, 120, 180, 240, 300, 360].map(x => (
-        <Line key={`v${x}`} x1={x} y1="0" x2={x} y2="220" stroke="#E5E7EB" strokeWidth="1" />
-      ))}
-
-      {/* Polyline route path */}
-      <Path
-        d={MAP_STOPS.map((s, i) => `${i === 0 ? 'M' : 'L'} ${s.x} ${s.y}`).join(' ')}
-        stroke={COLORS.primary}
-        strokeWidth="2.5"
-        strokeDasharray="6,4"
-        fill="none"
-        opacity={0.7}
-      />
-
-      {/* Completed segment (solid) */}
-      <Path
-        d={MAP_STOPS.filter(s => s.status !== 'upcoming').map((s, i) => `${i === 0 ? 'M' : 'L'} ${s.x} ${s.y}`).join(' ')}
-        stroke={COLORS.success}
-        strokeWidth="3"
-        fill="none"
-      />
-
-      {/* Stop markers */}
-      {MAP_STOPS.slice(1).map((stop) => (
-        <React.Fragment key={stop.label}>
-          <Circle
-            cx={stop.x}
-            cy={stop.y}
-            r={stop.status === 'next' ? 14 : 11}
-            fill={stopColor(stop.status)}
-            opacity={0.15}
-          />
-          <Circle
-            cx={stop.x}
-            cy={stop.y}
-            r={stop.status === 'next' ? 9 : 7}
-            fill={stopColor(stop.status)}
-          />
-          <SvgText
-            x={stop.x}
-            y={stop.y + 4}
-            textAnchor="middle"
-            fill="white"
-            fontSize={9}
-            fontWeight="bold"
-          >
-            {stop.label}
-          </SvgText>
-        </React.Fragment>
-      ))}
-
-      {/* Depot marker */}
-      <Rect x={MAP_STOPS[0].x - 10} y={MAP_STOPS[0].y - 10} width={20} height={20} rx={4} fill="#1A1D1F" />
-      <SvgText x={MAP_STOPS[0].x} y={MAP_STOPS[0].y + 4} textAnchor="middle" fill="white" fontSize={8} fontWeight="bold">HUB</SvgText>
-
-      {/* Driver location pulsing circle */}
-      <Circle cx={DRIVER_POS.x} cy={DRIVER_POS.y} r={18} fill={COLORS.primary} opacity={0.2} />
-      <Circle cx={DRIVER_POS.x} cy={DRIVER_POS.y} r={10} fill={COLORS.primary} />
-      <SvgText x={DRIVER_POS.x} y={DRIVER_POS.y + 3} textAnchor="middle" fill="white" fontSize={8}>▲</SvgText>
-    </Svg>
-
-    {/* Legend */}
-    <View style={styles.mapLegend}>
-      <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: COLORS.success }]} /><Text style={styles.legendText}>Done</Text></View>
-      <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: COLORS.primary }]} /><Text style={styles.legendText}>Next</Text></View>
-      <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#9CA3AF' }]} /><Text style={styles.legendText}>Upcoming</Text></View>
-    </View>
-  </View>
-);
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export const TrackScreen = () => {
-  const { route, stops } = useAppContext();
-  const [cachedPings] = useState(14);
+  const { route, stops, polylineCoords } = useAppContext();
+  const [cachedPings, setCachedPings] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncSuccess, setLastSyncSuccess] = useState<boolean | null>(null);
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'undetermined'>('undetermined');
+  const [driverCoord, setDriverCoord] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
 
-  const nextStop = stops.find(s => s.status === 'PENDING');
+  const tabRoute = useRoute<RouteProp<MainTabParamList, 'Track'>>();
+  const navParams = tabRoute.params;
+
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [navCoords, setNavCoords] = useState<[number, number][]>([]);
+  const [navDistanceKm, setNavDistanceKm] = useState<number | null>(null);
+  const [navDurationMin, setNavDurationMin] = useState<number | null>(null);
+
+  const nextStop = stops.find(s => s.status === 'PENDING' || s.status === 'ARRIVED');
   const completedCount = stops.filter(s => s.status === 'COMPLETED').length;
 
   const remainingKm = route
-    ? (route.total_distance_km - (route.total_distance_km * (completedCount / stops.length))).toFixed(1)
-    : '8.4';
+    ? (route.total_distance_km - (route.total_distance_km * (completedCount / Math.max(stops.length, 1)))).toFixed(1)
+    : '—';
 
   const remainingMin = route
-    ? Math.round(route.total_estimated_time_min * (1 - completedCount / stops.length))
-    : 80;
+    ? Math.round(route.total_estimated_time_min * (1 - completedCount / Math.max(stops.length, 1)))
+    : null;
 
-  const etaHr = Math.floor(remainingMin / 60);
-  const etaMin = remainingMin % 60;
-  const etaLabel = etaHr > 0 ? `${etaHr} hr ${etaMin} min` : `${etaMin} min`;
+  const etaLabel = remainingMin != null
+    ? (remainingMin >= 60
+      ? `${Math.floor(remainingMin / 60)} giờ ${remainingMin % 60} phút`
+      : `${remainingMin} phút`)
+    : '—';
+
+  // ─── Fetch In-App Navigation Route via OSRM ──────────────────────────────
+  useEffect(() => {
+    if (navParams?.autoStartNavigation && navParams.destLat && navParams.destLng && driverCoord) {
+      setIsNavigating(true);
+      const fetchRoute = async () => {
+        try {
+          const url = `https://router.project-osrm.org/route/v1/driving/${driverCoord.longitude},${driverCoord.latitude};${navParams.destLng},${navParams.destLat}?overview=full&geometries=geojson`;
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+              const r = data.routes[0];
+              const coords = r.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]]);
+              setNavCoords(coords);
+              setNavDistanceKm(r.distance / 1000);
+              setNavDurationMin(r.duration / 60);
+            }
+          }
+        } catch (e) {
+          console.log('Error fetching nav route', e);
+        }
+      };
+      fetchRoute();
+    }
+  }, [navParams?.autoStartNavigation, navParams?.destLat, navParams?.destLng, driverCoord?.latitude]);
+
+  // ─── Request GPS permission on mount ─────────────────────────────────────
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      setLocationPermission(status === 'granted' ? 'granted' : 'denied');
+      if (status !== 'granted') {
+        Alert.alert(
+          'Cần quyền định vị',
+          'Ứng dụng cần quyền truy cập GPS để theo dõi và gửi vị trí tài xế.',
+          [{ text: 'OK' }],
+        );
+      }
+    })();
+  }, []);
+
+  // ─── Real GPS push every 10 seconds ──────────────────────────────────────
+  const sendGpsPing = useCallback(async () => {
+    if (locationPermission !== 'granted') return;
+    try {
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const { latitude, longitude, speed, heading, accuracy } = loc.coords;
+
+      // Update local driver position on the map
+      setDriverCoord({ latitude, longitude });
+      setGpsAccuracy(accuracy ? Math.round(accuracy) : null);
+
+      // Push real GPS coordinates to backend
+      await postDriverLocation(
+        ACTIVE_DRIVER_ID,
+        latitude,
+        longitude,
+        speed ?? undefined,
+        heading ?? undefined,
+      );
+      setCachedPings(0);
+      setLastSyncSuccess(true);
+    } catch {
+      setCachedPings(p => p + 1);
+      setLastSyncSuccess(false);
+    }
+  }, [locationPermission, isNavigating]);
+
+  useEffect(() => {
+    if (locationPermission !== 'granted') return;
+    // Initial ping immediately
+    sendGpsPing();
+    const interval = setInterval(sendGpsPing, GPS_PUSH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [locationPermission, sendGpsPing]);
 
   const handleNavigate = () => {
-    if (!nextStop) return;
-    const { lat, lng } = nextStop.order;
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    Linking.openURL(url).catch(() => Alert.alert('Error', 'Unable to open Maps.'));
+    if (!driverCoord) {
+      Alert.alert('Chưa có vị trí', 'Vui lòng chờ tín hiệu GPS để bắt đầu di chuyển.');
+      return;
+    }
+    
+    setIsNavigating(true);
   };
 
-  const handleSync = () => {
+  const handleSync = async () => {
     setIsSyncing(true);
-    setTimeout(() => setIsSyncing(false), 1500);
+    try {
+      await sendGpsPing();
+    } finally {
+      setTimeout(() => setIsSyncing(false), 800);
+    }
   };
 
   return (
     <SafeAreaView style={COMMON_STYLES.container} edges={['top']}>
+      {navParams?.autoStartNavigation && navCoords.length > 0 && (
+        <View style={styles.navBanner}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.navBannerTitle}>
+              Đang dẫn đường tới: {navParams.customerName}
+            </Text>
+            <Text style={styles.navBannerAddress} numberOfLines={1}>
+              {navParams.address}
+            </Text>
+          </View>
+          <View style={styles.navBannerStats}>
+            <Text style={styles.navBannerTime}>
+              {navDurationMin ? `${Math.round(navDurationMin)} phút` : '--'}
+            </Text>
+            <Text style={styles.navBannerDist}>
+              {navDistanceKm ? `${navDistanceKm.toFixed(1)} km` : '--'}
+            </Text>
+          </View>
+        </View>
+      )}
+
       <ScrollView contentContainerStyle={{ padding: SIZES.padding_md }}>
 
         {/* ── Header ── */}
         <View style={styles.headerRow}>
           <View>
-            <Text style={TYPOGRAPHY.header}>Live Route Track</Text>
-            <Text style={TYPOGRAPHY.bodySecondary}>GPS-guided delivery navigation</Text>
+            <Text style={TYPOGRAPHY.header}>Theo dõi tuyến đường</Text>
+            <Text style={TYPOGRAPHY.bodySecondary}>Dẫn đường giao hàng GPS</Text>
           </View>
-          <View style={styles.locateBadge}>
-            <Locate color={COLORS.success} size={14} />
-            <Text style={styles.locateText}>LIVE</Text>
+          <View style={[styles.locateBadge, { backgroundColor: locationPermission === 'granted' ? '#D1FAE5' : '#FEF3C7' }]}>
+            <Locate color={locationPermission === 'granted' ? COLORS.success : '#D97706'} size={14} />
+            <Text style={[styles.locateText, { color: locationPermission === 'granted' ? COLORS.success : '#D97706' }]}>
+              {locationPermission === 'granted' ? 'LIVE' : 'GPS OFF'}
+            </Text>
           </View>
         </View>
 
@@ -194,34 +231,62 @@ export const TrackScreen = () => {
         <View style={[COMMON_STYLES.card, styles.gpsCard]}>
           <View style={styles.gpsPill}>
             <PulsingDot />
-            <Text style={styles.gpsText}>GPS Active</Text>
-            <Text style={styles.gpsAccuracy}>(Accuracy: ±5 m)</Text>
+            <Text style={styles.gpsText}>
+              {locationPermission === 'granted' ? 'GPS đang hoạt động' : 'Chưa cấp quyền GPS'}
+            </Text>
+            {gpsAccuracy != null && (
+              <Text style={styles.gpsAccuracy}>(Độ chính xác: ±{gpsAccuracy} m)</Text>
+            )}
           </View>
+          {driverCoord && (
+            <Text style={styles.coordText}>
+              📍 {driverCoord.latitude.toFixed(5)}, {driverCoord.longitude.toFixed(5)}
+            </Text>
+          )}
           <View style={styles.routeStats}>
             <View style={styles.statItem}>
-              <Route color={COLORS.primary} size={16} />
+              <RouteIcon color={COLORS.primary} size={16} />
               <Text style={styles.statValue}>{remainingKm} km</Text>
-              <Text style={styles.statLabel}>Remaining</Text>
+              <Text style={styles.statLabel}>Còn lại</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Clock color={COLORS.success} size={16} />
               <Text style={styles.statValue}>{etaLabel}</Text>
-              <Text style={styles.statLabel}>Est. ETA</Text>
+              <Text style={styles.statLabel}>ETA</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <MapPin color={COLORS.textSecondary} size={16} />
               <Text style={styles.statValue}>{completedCount}/{stops.length}</Text>
-              <Text style={styles.statLabel}>Stops Done</Text>
+              <Text style={styles.statLabel}>Đã giao</Text>
             </View>
           </View>
         </View>
 
-        {/* ── Simulated Map ── */}
+        {/* ── Real Route Map ── */}
         <View style={COMMON_STYLES.card}>
-          <Text style={[TYPOGRAPHY.title, { marginBottom: 10 }]}>Route Map</Text>
-          <SimulatedMap />
+          <View style={styles.mapHeader}>
+            <Text style={[TYPOGRAPHY.title, { flex: 1 }]}>Bản đồ tuyến đường</Text>
+            {polylineCoords.length === 0 && (
+              <View style={styles.noRouteChip}>
+                <Text style={styles.noRouteChipText}>Chưa có tuyến</Text>
+              </View>
+            )}
+          </View>
+          <OSMMapView
+            style={styles.mapView}
+            driverCoords={driverCoord}
+            stops={stops.map((s) => ({
+              id: s.id,
+              lat: s.order.lat,
+              lng: s.order.lng,
+              stopNumber: s.sequence_no,
+              status: s.status,
+            }))}
+            routePolyline={polylineCoords}
+            navPolyline={navCoords}
+          />
         </View>
 
         {/* ── Next Stop Card ── */}
@@ -229,9 +294,9 @@ export const TrackScreen = () => {
           <View style={[COMMON_STYLES.card, styles.nextStopCard]}>
             <View style={styles.nextStopHeader}>
               <View style={styles.nextStopBadge}>
-                <Text style={styles.nextStopBadgeText}>NEXT STOP</Text>
+                <Text style={styles.nextStopBadgeText}>ĐIỂM TIẾP THEO</Text>
               </View>
-              <Text style={styles.nextStopCode}>#{nextStop.order.code}</Text>
+              <Text style={styles.nextStopCode}>#{nextStop.sequence_no} · {nextStop.order.code}</Text>
             </View>
 
             <Text style={styles.nextStopName}>{nextStop.order.receiver_name}</Text>
@@ -254,29 +319,35 @@ export const TrackScreen = () => {
               activeOpacity={0.8}
             >
               <Navigation color="#fff" size={18} style={{ marginRight: 8 }} />
-              <Text style={TYPOGRAPHY.buttonText}>Navigate Now</Text>
+              <Text style={TYPOGRAPHY.buttonText}>Bắt đầu di chuyển</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={[COMMON_STYLES.card, styles.allDoneCard]}>
-            <Text style={styles.allDoneText}>🎉 All stops completed for today!</Text>
+            <Text style={styles.allDoneText}>🎉 Hoàn thành tất cả điểm giao hôm nay!</Text>
           </View>
         )}
 
-        {/* ── Offline GPS Cache ── */}
+        {/* ── GPS Sync Status ── */}
         <View style={[COMMON_STYLES.card, styles.cacheCard]}>
           <View style={styles.cacheLeft}>
             {isSyncing ? (
-              <WifiOff color={COLORS.primary} size={20} />
+              <Wifi color={COLORS.primary} size={20} />
+            ) : lastSyncSuccess === false ? (
+              <WifiOff color={COLORS.danger} size={20} />
             ) : (
               <Wifi color={COLORS.success} size={20} />
             )}
             <View style={{ marginLeft: 10, flex: 1 }}>
-              <Text style={styles.cacheTitle}>Offline GPS Cache</Text>
+              <Text style={styles.cacheTitle}>
+                {lastSyncSuccess === false ? 'Offline – Lưu GPS cục bộ' : 'GPS đồng bộ Backend'}
+              </Text>
               <Text style={styles.cacheDetail}>
                 {isSyncing
-                  ? 'Syncing to cloud…'
-                  : `Cached coordinates: ${cachedPings} pings queued for cloud sync`}
+                  ? 'Đang gửi tọa độ...'
+                  : lastSyncSuccess === false
+                    ? `${cachedPings} ping chờ gửi khi có mạng`
+                    : `Tự động gửi mỗi ${GPS_PUSH_INTERVAL_MS / 1000}s · Dashboard đang hiển thị vị trí thực`}
               </Text>
             </View>
           </View>
@@ -301,7 +372,6 @@ const styles = StyleSheet.create({
   locateBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D1FAE5',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
@@ -310,7 +380,6 @@ const styles = StyleSheet.create({
   locateText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.success,
     letterSpacing: 1,
   },
   gpsCard: {
@@ -341,6 +410,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
   },
+  coordText: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    paddingHorizontal: 4,
+  },
   routeStats: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -365,37 +440,61 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: COLORS.border,
   },
-  mapContainer: {
-    height: 220,
-    backgroundColor: '#F9FAFB',
-    borderRadius: SIZES.radius_md,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  mapLegend: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  legendItem: {
+  mapHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    marginBottom: 10,
   },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  noRouteChip: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
-  legendText: {
-    fontSize: 10,
-    color: COLORS.textSecondary,
+  noRouteChipText: {
+    fontSize: 11,
+    color: '#D97706',
+    fontWeight: '600',
+  },
+  mapView: {
+    height: 240,
+    borderRadius: SIZES.radius_md,
+    overflow: 'hidden',
+  },
+  stopMarker: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  stopMarkerText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  driverMarker: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'white',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  driverMarkerText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   nextStopCard: {
     borderLeftWidth: 4,
@@ -487,5 +586,42 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 10,
     backgroundColor: '#FEF2F2',
+  },
+  navBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#1E3A8A',
+    padding: 16,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    marginBottom: 8,
+  },
+  navBannerTitle: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  navBannerAddress: {
+    color: '#BFDBFE',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  navBannerStats: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    marginLeft: 12,
+  },
+  navBannerTime: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  navBannerDist: {
+    color: '#93C5FD',
+    fontSize: 12,
   },
 });

@@ -35,7 +35,7 @@ export const PODCompletionScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <ArrowLeft color={COLORS.textPrimary} size={24} />
         </TouchableOpacity>
-        <Text style={TYPOGRAPHY.header}>Proof of Delivery</Text>
+        <Text style={TYPOGRAPHY.header}>Bằng chứng giao hàng (POD)</Text>
       </View>
 
       <KeyboardAvoidingView 
@@ -44,29 +44,29 @@ export const PODCompletionScreen = () => {
       >
         <ScrollView contentContainerStyle={{ padding: SIZES.padding_md, paddingBottom: 100 }}>
           {/* Camera Mockup */}
-          <Text style={[TYPOGRAPHY.title, { marginBottom: SIZES.padding_sm }]}>Package Photo</Text>
+          <Text style={[TYPOGRAPHY.title, { marginBottom: SIZES.padding_sm }]}>Ảnh kiện hàng</Text>
           <View style={styles.cameraPlaceholder}>
             <Camera color={COLORS.inactive} size={48} />
-            <Text style={[TYPOGRAPHY.bodySecondary, { marginTop: 12 }]}>Tap to capture photo</Text>
+            <Text style={[TYPOGRAPHY.bodySecondary, { marginTop: 12 }]}>Chạm để chụp ảnh</Text>
           </View>
 
           {/* COD Collection */}
           {expectedCod > 0 && (
             <View style={[COMMON_STYLES.card, { marginTop: SIZES.padding_lg }]}>
-              <Text style={TYPOGRAPHY.title}>COD Collection</Text>
+              <Text style={TYPOGRAPHY.title}>Thu tiền COD</Text>
               
               <View style={styles.codSummary}>
-                <Text style={TYPOGRAPHY.bodySecondary}>Expected Amount</Text>
+                <Text style={TYPOGRAPHY.bodySecondary}>Số tiền cần thu</Text>
                 <Text style={[TYPOGRAPHY.header, { color: COLORS.primary }]}>
                   {expectedCod.toLocaleString('vi-VN')} VND
                 </Text>
               </View>
 
-              <Text style={[TYPOGRAPHY.body, { marginBottom: 8, marginTop: 16 }]}>Actual Cash Collected</Text>
+              <Text style={[TYPOGRAPHY.body, { marginBottom: 8, marginTop: 16 }]}>Số tiền thực tế đã thu</Text>
               <TextInput
                 style={styles.input}
                 keyboardType="numeric"
-                placeholder="Enter amount (VND)"
+                placeholder="Nhập số tiền (VND)"
                 value={collectedAmount}
                 onChangeText={setCollectedAmount}
               />
@@ -76,10 +76,10 @@ export const PODCompletionScreen = () => {
                   {isAmountValid ? (
                     <>
                       <CheckCircle2 color={COLORS.success} size={16} style={{ marginRight: 4 }} />
-                      <Text style={{ color: COLORS.success, fontSize: 14 }}>Amount matches expected cash</Text>
+                      <Text style={{ color: COLORS.success, fontSize: 14 }}>Số tiền khớp với COD yêu cầu</Text>
                     </>
                   ) : (
-                    <Text style={{ color: COLORS.danger, fontSize: 14 }}>Amount does not match expected COD</Text>
+                    <Text style={{ color: COLORS.danger, fontSize: 14 }}>Số tiền không khớp với COD yêu cầu</Text>
                   )}
                 </View>
               )}
@@ -94,7 +94,7 @@ export const PODCompletionScreen = () => {
           onPress={handleSubmit}
           disabled={!isAmountValid && expectedCod > 0}
         >
-          <Text style={TYPOGRAPHY.buttonText}>SUBMIT POD & COMPLETE</Text>
+          <Text style={TYPOGRAPHY.buttonText}>GỬI BẰNG CHỨNG & HOÀN THÀNH</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

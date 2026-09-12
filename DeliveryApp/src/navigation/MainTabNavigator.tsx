@@ -10,7 +10,14 @@ import { TaskStackNavigator } from './TaskStackNavigator';
 export type MainTabParamList = {
   Fleet: undefined;
   Tasks: undefined;
-  Track: undefined;
+  Track: {
+    selectedStopId?: string;
+    destLat?: number;
+    destLng?: number;
+    address?: string;
+    customerName?: string;
+    autoStartNavigation?: boolean;
+  } | undefined;
   Account: undefined;
 };
 
@@ -37,10 +44,10 @@ export const MainTabNavigator = () => {
         },
       })}
     >
-      <Tab.Screen name="Fleet" component={FleetScreen} />
-      <Tab.Screen name="Tasks" component={TaskStackNavigator} />
-      <Tab.Screen name="Track" component={TrackScreen} />
-      <Tab.Screen name="Account" component={AccountScreen} />
+      <Tab.Screen name="Fleet" component={FleetScreen} options={{ tabBarLabel: 'Đội xe' }} />
+      <Tab.Screen name="Tasks" component={TaskStackNavigator} options={{ tabBarLabel: 'Nhiệm vụ' }} />
+      <Tab.Screen name="Track" component={TrackScreen} options={{ tabBarLabel: 'Theo dõi' }} />
+      <Tab.Screen name="Account" component={AccountScreen} options={{ tabBarLabel: 'Tài khoản' }} />
     </Tab.Navigator>
   );
 };

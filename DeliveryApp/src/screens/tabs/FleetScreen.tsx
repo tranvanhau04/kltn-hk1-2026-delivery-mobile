@@ -112,18 +112,18 @@ export const FleetScreen = () => {
 
   const handleCallHub = () => {
     Linking.openURL(`tel:${DEPOT.phone}`).catch(() =>
-      Alert.alert('Error', 'Unable to open phone dialer.')
+      Alert.alert('Lỗi', 'Không thể mở trình gọi điện.')
     );
   };
 
   const handleDirections = () => {
     Linking.openURL(DEPOT.mapsUrl).catch(() =>
-      Alert.alert('Error', 'Unable to open Maps.')
+      Alert.alert('Lỗi', 'Không thể mở Bản đồ.')
     );
   };
 
   const vehicleLabel =
-    driver.vehicle_type === 'Xe máy' ? 'Motorbike – 150cc' : 'Light Van – 500kg';
+    driver.vehicle_type === 'Xe máy' ? 'Xe máy – 150cc' : 'Xe tải nhỏ – 500kg';
 
   return (
     <SafeAreaView style={COMMON_STYLES.container} edges={['top']}>
@@ -132,12 +132,12 @@ export const FleetScreen = () => {
         {/* ── Header ── */}
         <View style={styles.headerRow}>
           <View>
-            <Text style={TYPOGRAPHY.header}>Vehicle & Fleet Specs</Text>
-            <Text style={TYPOGRAPHY.bodySecondary}>Manage your vehicle and base depot</Text>
+            <Text style={TYPOGRAPHY.header}>Thông tin xe & Đội xe</Text>
+            <Text style={TYPOGRAPHY.bodySecondary}>Quản lý xe và bến bãi của bạn</Text>
           </View>
           <View style={styles.assignedBadge}>
             <Truck color={COLORS.primary} size={14} />
-            <Text style={styles.assignedText}>Assigned</Text>
+            <Text style={styles.assignedText}>Đã phân công</Text>
           </View>
         </View>
 
@@ -161,9 +161,9 @@ export const FleetScreen = () => {
           <View style={styles.divider} />
 
           {/* Capacity bars */}
-          <Text style={[TYPOGRAPHY.title, { marginBottom: 12 }]}>Payload Capacity</Text>
+          <Text style={[TYPOGRAPHY.title, { marginBottom: 12 }]}>Tải trọng</Text>
           <CapacityBar
-            label="Weight Load"
+            label="Tải trọng khối lượng"
             current={CURRENT_WEIGHT_KG}
             max={driver.max_weight_kg}
             unit="kg"
@@ -171,7 +171,7 @@ export const FleetScreen = () => {
           />
           <View style={{ height: 12 }} />
           <CapacityBar
-            label="Volume Load"
+            label="Tải trọng thể tích"
             current={CURRENT_VOLUME_M3}
             max={driver.max_volume_m3}
             unit="m³"
@@ -185,7 +185,7 @@ export const FleetScreen = () => {
             <View style={styles.depotIconWrap}>
               <MapPin color={COLORS.primary} size={20} />
             </View>
-            <Text style={[TYPOGRAPHY.title, { flex: 1, marginLeft: 10 }]}>Base Depot / Hub</Text>
+            <Text style={[TYPOGRAPHY.title, { flex: 1, marginLeft: 10 }]}>Bến bãi / Trạm</Text>
           </View>
 
           <Text style={styles.depotName}>{DEPOT.name}</Text>
@@ -201,7 +201,7 @@ export const FleetScreen = () => {
               activeOpacity={0.8}
             >
               <Phone color="#fff" size={16} />
-              <Text style={styles.depotBtnText}>Call Hub Manager</Text>
+              <Text style={styles.depotBtnText}>Gọi quản lý trạm</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.depotBtn, { backgroundColor: COLORS.primary }]}
@@ -209,7 +209,7 @@ export const FleetScreen = () => {
               activeOpacity={0.8}
             >
               <Navigation color="#fff" size={16} />
-              <Text style={styles.depotBtnText}>Directions to Hub</Text>
+              <Text style={styles.depotBtnText}>Chỉ đường đến trạm</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -218,18 +218,18 @@ export const FleetScreen = () => {
         <View style={COMMON_STYLES.card}>
           <View style={styles.checklistHeader}>
             <ShieldCheck color={COLORS.success} size={20} />
-            <Text style={[TYPOGRAPHY.title, { marginLeft: 8 }]}>Maintenance & Safety</Text>
+            <Text style={[TYPOGRAPHY.title, { marginLeft: 8 }]}>Bảo dưỡng & An toàn</Text>
           </View>
 
           <CheckRow
             icon={<Fuel color={COLORS.textSecondary} size={18} style={{ marginRight: 10 }} />}
-            label="Fuel / Battery"
-            value={`${FUEL_PERCENT}% – Good`}
+            label="Nhiên liệu / Pin"
+            value={`${FUEL_PERCENT}% – Tốt`}
           />
           <View style={styles.rowDivider} />
           <CheckRow
             icon={<CircleCheck color={COLORS.textSecondary} size={18} style={{ marginRight: 10 }} />}
-            label="Tire Pressure OK"
+            label="Áp suất lốp tốt"
             value={tireOk}
             togglable
             onToggle={setTireOk}
@@ -237,7 +237,7 @@ export const FleetScreen = () => {
           <View style={styles.rowDivider} />
           <CheckRow
             icon={<ShieldCheck color={COLORS.textSecondary} size={18} style={{ marginRight: 10 }} />}
-            label="Helmet Check OK"
+            label="Đã kiểm tra mũ bảo hiểm"
             value={helmetOk}
             togglable
             onToggle={setHelmetOk}
@@ -246,7 +246,7 @@ export const FleetScreen = () => {
           <View style={styles.checkRow}>
             <View style={styles.checkLeft}>
               <CalendarClock color={COLORS.textSecondary} size={18} style={{ marginRight: 10 }} />
-              <Text style={styles.checkLabel}>Scheduled Maintenance</Text>
+              <Text style={styles.checkLabel}>Bảo dưỡng định kỳ</Text>
             </View>
             <View style={styles.maintenanceBadge}>
               <AlertCircle color={COLORS.primary} size={13} />
@@ -257,7 +257,7 @@ export const FleetScreen = () => {
           <View style={styles.checkRow}>
             <View style={styles.checkLeft}>
               <Wrench color={COLORS.textSecondary} size={18} style={{ marginRight: 10 }} />
-              <Text style={styles.checkLabel}>Next Service Due</Text>
+              <Text style={styles.checkLabel}>Lần bảo dưỡng tiếp theo</Text>
             </View>
             <Text style={styles.checkValue}>15,000 km</Text>
           </View>

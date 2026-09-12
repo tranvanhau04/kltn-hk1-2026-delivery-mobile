@@ -99,15 +99,15 @@ export const AccountScreen = () => {
       'Log Out',
       'Are you sure you want to log out of IUH Logistics Mobile?',
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Log Out', style: 'destructive', onPress: () => Alert.alert('Logged out') },
+        { text: 'Hủy', style: 'cancel' },
+        { text: 'Đăng xuất', style: 'destructive', onPress: () => Alert.alert('Đã đăng xuất') },
       ]
     );
   };
 
   const handleCallDispatcher = () => {
     Linking.openURL(`tel:${DRIVER_EXTENDED.dispatcher_hotline}`).catch(() =>
-      Alert.alert('Error', 'Unable to open phone dialer.')
+      Alert.alert('Lỗi', 'Không thể mở trình gọi điện.')
     );
   };
 
@@ -119,8 +119,8 @@ export const AccountScreen = () => {
       <ScrollView contentContainerStyle={{ padding: SIZES.padding_md }}>
 
         {/* ── Header ── */}
-        <Text style={[TYPOGRAPHY.header, { marginBottom: 4 }]}>My Account</Text>
-        <Text style={[TYPOGRAPHY.bodySecondary, { marginBottom: SIZES.padding_md }]}>Driver profile & shift records</Text>
+        <Text style={[TYPOGRAPHY.header, { marginBottom: 4 }]}>Tài khoản của tôi</Text>
+        <Text style={[TYPOGRAPHY.bodySecondary, { marginBottom: SIZES.padding_md }]}>Hồ sơ tài xế & nhật ký ca làm việc</Text>
 
         {/* ── Driver Profile Card ── */}
         <View style={[COMMON_STYLES.card, styles.profileCard]}>
@@ -143,7 +143,7 @@ export const AccountScreen = () => {
                   {DRIVER_EXTENDED.rating.toFixed(2)} / 5.0
                 </Text>
                 <Text style={styles.ratingReviews}>
-                  ({DRIVER_EXTENDED.review_count} reviews)
+                  ({DRIVER_EXTENDED.review_count} đánh giá)
                 </Text>
               </View>
             </View>
@@ -168,14 +168,14 @@ export const AccountScreen = () => {
         {/* ── Shift & Financial Snapshot ── */}
         <View style={COMMON_STYLES.card}>
           <View style={styles.snapshotHeader}>
-            <Text style={TYPOGRAPHY.title}>Today's Shift Snapshot</Text>
+            <Text style={TYPOGRAPHY.title}>Tóm tắt ca làm việc hôm nay</Text>
             <ShiftBadge status={shiftStatus} />
           </View>
 
           {/* COD highlight */}
           <View style={styles.codHighlight}>
             <View>
-              <Text style={styles.codLabel}>COD Cash in Hand</Text>
+              <Text style={styles.codLabel}>Tiền COD đang giữ</Text>
               <Text style={styles.codValue}>{codFormatted}</Text>
             </View>
             <Wallet color={COLORS.primary} size={28} />
@@ -186,14 +186,14 @@ export const AccountScreen = () => {
             <MetricCard
               icon={<TrendingUp color={COLORS.success} size={20} />}
               value={`${DRIVER_EXTENDED.total_trips_month}`}
-              label="Trips This Month"
+              label="Chuyến đi tháng này"
               accent={COLORS.textPrimary}
             />
             <View style={styles.metricDivider} />
             <MetricCard
               icon={<CheckCircle2 color={COLORS.primary} size={20} />}
               value={`${DRIVER_EXTENDED.on_time_rate}%`}
-              label="On-Time Rate"
+              label="Tỷ lệ đúng giờ"
               accent={COLORS.success}
             />
           </View>
@@ -201,29 +201,29 @@ export const AccountScreen = () => {
 
         {/* ── Action List ── */}
         <View style={COMMON_STYLES.card}>
-          <Text style={[TYPOGRAPHY.title, { marginBottom: 12 }]}>Settings & More</Text>
+          <Text style={[TYPOGRAPHY.title, { marginBottom: 12 }]}>Cài đặt & Khác</Text>
 
           <ActionRow
             icon={<History color={COLORS.primary} size={20} />}
-            label="Shift History & COD Records"
-            subtitle="View reconciliation breakdown"
-            onPress={() => Alert.alert('Shift History', 'Navigate to shift detail screen')}
+            label="Lịch sử ca & Lịch sử COD"
+            subtitle="Xem chi tiết đối soát"
+            onPress={() => Alert.alert('Lịch sử', 'Chuyển đến màn hình chi tiết ca')}
           />
           <ActionRow
             icon={<Map color={COLORS.success} size={20} />}
-            label="Working Zone Preferences"
-            subtitle={`Zones: ${DRIVER_EXTENDED.zones.join(', ')}`}
-            onPress={() => Alert.alert('Zones', DRIVER_EXTENDED.zones.join(', '))}
+            label="Khu vực làm việc ưu tiên"
+            subtitle={`Khu vực: ${DRIVER_EXTENDED.zones.join(', ')}`}
+            onPress={() => Alert.alert('Khu vực', DRIVER_EXTENDED.zones.join(', '))}
           />
           <ActionRow
             icon={<Bell color="#F59E0B" size={20} />}
-            label="Notification & Audio Alerts"
-            subtitle="Voice navigation alerts toggle"
-            onPress={() => Alert.alert('Alerts', 'Notification settings')}
+            label="Thông báo & Âm thanh"
+            subtitle="Bật/tắt thông báo dẫn đường"
+            onPress={() => Alert.alert('Thông báo', 'Cài đặt thông báo')}
           />
           <ActionRow
             icon={<HelpCircle color={COLORS.textSecondary} size={20} />}
-            label="Help Center & Dispatcher"
+            label="Trung tâm hỗ trợ & Tổng đài"
             subtitle={`Hotline: ${DRIVER_EXTENDED.dispatcher_hotline}`}
             onPress={handleCallDispatcher}
             isLast
@@ -239,7 +239,7 @@ export const AccountScreen = () => {
             activeOpacity={0.8}
           >
             <LogOut color={COLORS.danger} size={18} style={{ marginRight: 8 }} />
-            <Text style={styles.logoutText}>Log Out</Text>
+            <Text style={styles.logoutText}>Đăng xuất</Text>
           </TouchableOpacity>
         </View>
 

@@ -9,9 +9,9 @@ import { useAppContext } from '../../context/AppContext';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 
 const FAILURE_REASONS = [
-  'Customer unreachable (Gọi 3 cuộc không nghe máy)',
-  'Customer rescheduled (Khách hẹn ngày khác)',
-  'Refused delivery / Boom hàng (Chuyển hoàn về kho)'
+  'Khách không nghe máy (Gọi 3 cuộc không nghe máy)',
+  'Khách hẹn ngày khác',
+  'Từ chối nhận hàng (Boom hàng - Chuyển hoàn)'
 ];
 
 export const DeliveryFailureScreen = () => {
@@ -39,19 +39,19 @@ export const DeliveryFailureScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <ArrowLeft color={COLORS.textPrimary} size={24} />
         </TouchableOpacity>
-        <Text style={TYPOGRAPHY.header}>Report Failure</Text>
+        <Text style={TYPOGRAPHY.header}>Báo cáo thất bại</Text>
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={{ padding: SIZES.padding_md, paddingBottom: 100 }}>
           
-          <Text style={[TYPOGRAPHY.title, { marginBottom: 8 }]}>Reason for Failure</Text>
+          <Text style={[TYPOGRAPHY.title, { marginBottom: 8 }]}>Lý do giao thất bại</Text>
           <TouchableOpacity 
             style={styles.dropdownButton}
             onPress={() => setShowDropdown(!showDropdown)}
           >
             <Text style={[TYPOGRAPHY.body, !selectedReason && { color: COLORS.inactive }]}>
-              {selectedReason || 'Select a reason...'}
+              {selectedReason || 'Chọn lý do...'}
             </Text>
             <ChevronDown color={COLORS.inactive} size={20} />
           </TouchableOpacity>
@@ -73,16 +73,16 @@ export const DeliveryFailureScreen = () => {
             </View>
           )}
 
-          <Text style={[TYPOGRAPHY.title, { marginTop: 24, marginBottom: 8 }]}>Evidence Photo</Text>
+          <Text style={[TYPOGRAPHY.title, { marginTop: 24, marginBottom: 8 }]}>Ảnh bằng chứng</Text>
           <View style={styles.cameraPlaceholder}>
             <Camera color={COLORS.inactive} size={48} />
-            <Text style={[TYPOGRAPHY.bodySecondary, { marginTop: 12 }]}>Take photo of location/door</Text>
+            <Text style={[TYPOGRAPHY.bodySecondary, { marginTop: 12 }]}>Chụp ảnh địa điểm/cửa</Text>
           </View>
 
-          <Text style={[TYPOGRAPHY.title, { marginTop: 24, marginBottom: 8 }]}>Additional Notes</Text>
+          <Text style={[TYPOGRAPHY.title, { marginTop: 24, marginBottom: 8 }]}>Ghi chú thêm</Text>
           <TextInput
             style={styles.textArea}
-            placeholder="Enter any additional details here..."
+            placeholder="Nhập chi tiết bổ sung tại đây..."
             multiline
             numberOfLines={4}
             value={notes}
@@ -99,7 +99,7 @@ export const DeliveryFailureScreen = () => {
           onPress={handleSubmit}
           disabled={!selectedReason}
         >
-          <Text style={[TYPOGRAPHY.buttonText, { color: '#FFF' }]}>CONFIRM FAILURE</Text>
+          <Text style={[TYPOGRAPHY.buttonText, { color: '#FFF' }]}>XÁC NHẬN THẤT BẠI</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
