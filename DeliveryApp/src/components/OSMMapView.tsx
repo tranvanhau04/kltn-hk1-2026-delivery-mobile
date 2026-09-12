@@ -109,6 +109,10 @@ export const OSMMapView: React.FC<OSMMapViewProps> = ({
               });
               L.marker([data.targetCoord.latitude, data.targetCoord.longitude], { icon: tIcon }).addTo(map);
             }
+
+            if (data.zoom) {
+              map.setZoom(data.zoom);
+            }
           } catch(e) {
             window.ReactNativeWebView.postMessage("Error: " + e.message);
           }
@@ -123,11 +127,11 @@ export const OSMMapView: React.FC<OSMMapViewProps> = ({
 
   useEffect(() => {
     if (isReady && webViewRef.current) {
-      const data = { driverCoords, stops, routePolyline, navPolyline, targetCoord };
+      const data = { driverCoords, stops, routePolyline, navPolyline, targetCoord, zoom };
       const script = `updateMap(${JSON.stringify(data)});`;
       webViewRef.current.injectJavaScript(script);
     }
-  }, [driverCoords, stops, routePolyline, navPolyline, targetCoord, isReady]);
+  }, [driverCoords, stops, routePolyline, navPolyline, targetCoord, zoom, isReady]);
 
   return (
     <View style={[styles.container, style]}>
