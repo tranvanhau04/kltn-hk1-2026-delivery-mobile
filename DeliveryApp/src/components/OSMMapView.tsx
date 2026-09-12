@@ -11,6 +11,7 @@ export interface OSMMapViewProps {
   stops?: Array<{ id: string; lat: number; lng: number; stopNumber: number; status: string }>;
   routePolyline?: Array<[number, number]>;
   navPolyline?: Array<[number, number]>;
+  targetCoord?: { latitude: number; longitude: number };
 }
 
 export const OSMMapView: React.FC<OSMMapViewProps> = ({ 
@@ -21,7 +22,8 @@ export const OSMMapView: React.FC<OSMMapViewProps> = ({
   driverCoords,
   stops,
   routePolyline,
-  navPolyline
+  navPolyline,
+  targetCoord
 }) => {
   const webViewRef = useRef<WebView>(null);
   const [isReady, setIsReady] = useState(false);
@@ -95,11 +97,17 @@ export const OSMMapView: React.FC<OSMMapViewProps> = ({
               } else {
                 driverMarker.setLatLng([data.driverCoords.latitude, data.driverCoords.longitude]);
               }
-              
-              // Only pan if navPolyline is active (driving mode) to mimic auto-start navigation
-              if (data.navPolyline && data.navPolyline.length > 0) {
-                map.panTo([data.driverCoords.latitude, data.driverCoords.longitude], { animate: true });
-              }
+            }
+
+            // Target Pin (e.g. Stop Detail)
+            if (data.targetCoord && data.targetCoord.latitude && data.targetCoord.longitude) {
+              var tIcon = L.divIcon({
+                className: 'custom-destination-pin',
+                html: '<div style="background-color: #2563EB; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.4);"></div>',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+              });
+              L.marker([data.targetCoord.latitude, data.targetCoord.longitude], { icon: tIcon }).addTo(map);
             }
           } catch(e) {
             window.ReactNativeWebView.postMessage("Error: " + e.message);
@@ -115,18 +123,19 @@ export const OSMMapView: React.FC<OSMMapViewProps> = ({
 
   useEffect(() => {
     if (isReady && webViewRef.current) {
-      const data = { driverCoords, stops, routePolyline, navPolyline };
-      const script = `updateMap(${JSON.stringify(data)}); true;`;
+      const data = { driverCoords, stops, routePolyline, navPolyline, targetCoord };
+      const script = `updateMap(${JSON.stringify(data)});`;
       webViewRef.current.injectJavaScript(script);
     }
-  }, [driverCoords, stops, routePolyline, navPolyline, isReady]);
+  }, [driverCoords, stops, routePolyline, navPolyline, targetCoord, isReady]);
 
   return (
     <View style={[styles.container, style]}>
       <WebView
         ref={webViewRef}
+        originWhitelist={['*']}
         source={{ html: mapHtml }}
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: 'transparent' }}
         scrollEnabled={false}
         showsHorizontalScrollIndicator={false}
         showsVerticalScrollIndicator={false}

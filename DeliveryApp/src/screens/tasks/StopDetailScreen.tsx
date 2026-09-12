@@ -103,8 +103,9 @@ export const StopDetailScreen = () => {
           <View style={{ marginTop: 16, width: '100%', height: 260, borderRadius: 16, overflow: 'hidden' }}>
             {Platform.OS === 'android' ? (
               <OSMMapView 
-                latitude={stop.order.lat || 10.8222} 
-                longitude={stop.order.lng || 106.6875} 
+                latitude={Number(stop.order.lat) || 10.8222} 
+                longitude={Number(stop.order.lng) || 106.6875} 
+                targetCoord={{ latitude: Number(stop.order.lat), longitude: Number(stop.order.lng) }}
                 style={{ flex: 1 }} 
               />
             ) : (

@@ -274,6 +274,8 @@ export const TrackScreen = () => {
           </View>
           <OSMMapView
             style={styles.mapView}
+            latitude={driverCoord?.latitude || Number(stops[0]?.order?.lat) || 10.8222}
+            longitude={driverCoord?.longitude || Number(stops[0]?.order?.lng) || 106.6875}
             driverCoords={driverCoord}
             stops={stops.map((s) => ({
               id: s.id,
