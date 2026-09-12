@@ -32,7 +32,7 @@ export const StopListScreen = () => {
       destLng: lng,
       address: address,
       customerName: receiverName,
-      autoStartNavigation: true,
+      autoStartNavigation: false,
     });
   };
 

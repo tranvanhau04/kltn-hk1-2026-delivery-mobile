@@ -63,7 +63,7 @@ export const TrackScreen = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncSuccess, setLastSyncSuccess] = useState<boolean | null>(null);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'undetermined'>('undetermined');
-  const [driverCoord, setDriverCoord] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [driverCoord, setDriverCoord] = useState<{ latitude: number; longitude: number; heading?: number | null } | null>(null);
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
 
   const tabRoute = useRoute<RouteProp<MainTabParamList, 'Track'>>();
@@ -97,10 +97,11 @@ export const TrackScreen = () => {
       : `${remainingMin} phút`)
     : '—';
 
-  // ─── Fetch In-App Navigation Route via OSRM ──────────────────────────────
   useEffect(() => {
-    if (navParams?.autoStartNavigation && navParams.destLat && navParams.destLng && driverCoord) {
-      setIsNavigating(true);
+    if (navParams?.destLat && navParams?.destLng && driverCoord) {
+      if (navParams?.autoStartNavigation) {
+        setIsNavigating(true);
+      }
       const fetchRoute = async () => {
         try {
           const url = `https://router.project-osrm.org/route/v1/driving/${driverCoord.longitude},${driverCoord.latitude};${navParams.destLng},${navParams.destLat}?overview=full&geometries=geojson`;
@@ -148,7 +149,7 @@ export const TrackScreen = () => {
       const { latitude, longitude, speed, heading, accuracy } = loc.coords;
 
       // Update local driver position on the map
-      setDriverCoord({ latitude, longitude });
+      setDriverCoord({ latitude, longitude, heading: heading ?? null });
       setGpsAccuracy(accuracy ? Math.round(accuracy) : null);
 
       // Push real GPS coordinates to backend
@@ -211,6 +212,7 @@ export const TrackScreen = () => {
           routePolyline={[]}
           navPolyline={navCoords}
           zoom={18}
+          isNavigating={true}
         />
 
         <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0 }} edges={['top']}>
@@ -278,6 +280,28 @@ export const TrackScreen = () => {
     <SafeAreaView style={COMMON_STYLES.container} edges={['top']}>
 
       <ScrollView contentContainerStyle={{ padding: SIZES.padding_md }}>
+
+        {/* ── Top Navigation Banner (PREVIEW MODE) ── */}
+        {isActiveStopSelected && (
+          <View style={[styles.navBanner, { borderRadius: 16, marginBottom: SIZES.padding_md }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.navBannerTitle}>
+                Tới: {activeStop?.order?.receiver_name}
+              </Text>
+              <Text style={styles.navBannerAddress} numberOfLines={1}>
+                {activeStop?.order?.delivery_address}
+              </Text>
+            </View>
+            <View style={styles.navBannerStats}>
+              <Text style={styles.navBannerTime}>
+                {navDurationMin ? `${Math.round(navDurationMin)} phút` : '--'}
+              </Text>
+              <Text style={styles.navBannerDist}>
+                {navDistanceKm ? `${navDistanceKm.toFixed(1)} km` : '--'}
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* ── Header ── */}
         <View style={styles.headerRow}>
@@ -354,6 +378,7 @@ export const TrackScreen = () => {
             }))}
             routePolyline={polylineCoords}
             navPolyline={navCoords}
+            isNavigating={false}
           />
         </View>
 
@@ -363,7 +388,7 @@ export const TrackScreen = () => {
             <View style={styles.nextStopHeader}>
               <View style={[styles.nextStopBadge, isActiveStopSelected && { backgroundColor: '#F59E0B' }]}>
                 <Text style={styles.nextStopBadgeText}>
-                  {isActiveStopSelected ? 'NHIỆM VỤ ĐANG CHỌN' : 'ĐIỂM TIẾP THEO'}
+                  {isActiveStopSelected ? 'NHIỆM VỤ ĐÃ CHỌN' : 'ĐIỂM TIẾP THEO'}
                 </Text>
               </View>
               <Text style={styles.nextStopCode}>#{activeStop.sequence_no} · {activeStop.order.code}</Text>

@@ -462,3 +462,49 @@
 {"_e":"metro:bundling:progress","_t":1789194200153,"id":"2","progress":0,"total":1,"current":0}
 {"_e":"metro:bundling:done","_t":1789194201765,"id":"2","total":1,"ms":1613.3138}
 {"_e":"metro:client_log","_t":1789194217982,"level":"warn","data":["The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation."]}
+{"_e":"root:init","_t":1789198875390,"format":"v0-jsonl","version":"57.0.22"}
+{"_e":"env:mode","_t":1789198875413,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1789198875432,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1789198879712,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1789198883591,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1789198887411,"plugins":[]}
+{"_e":"metro:instantiate","_t":1789198904754,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1789199676149,"id":"2","platform":"android","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1789199676151,"id":"2","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1789199677860,"id":"2","total":1,"ms":1710.2048}
+{"_e":"metro:client_log","_t":1789199694002,"level":"warn","data":["The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation."]}
+{"_e":"metro:bundling:failed","_t":1789200371433,"id":null,"message":"SyntaxError: C:\\Users\\TRAN HAU\\Desktop\\KLTN\\kltn-hk1-2026-delivery-mobile\\DeliveryApp\\src\\screens\\tabs\\TrackScreen.tsx: Expected corresponding JSX closing tag for <SafeAreaView>. (286:8)\n\n  284 |             navPolyline={navCoords}\n  285 |           />\n> 286 |         </View>\n      |         ^\n  287 |\n  288 |         {/* ── Active Task Card ── */}\n  289 |         {activeStop ? (","importStack":null,"filename":"src\\screens\\tabs\\TrackScreen.tsx","targetModuleName":null,"originModulePath":null}
+{"_e":"metro:bundling:failed","_t":1789200371674,"id":null,"message":"SyntaxError: C:\\Users\\TRAN HAU\\Desktop\\KLTN\\kltn-hk1-2026-delivery-mobile\\DeliveryApp\\src\\screens\\tabs\\TrackScreen.tsx: Expected corresponding JSX closing tag for <SafeAreaView>. (286:8)\n\n  284 |             navPolyline={navCoords}\n  285 |           />\n> 286 |         </View>\n      |         ^\n  287 |\n  288 |         {/* ── Active Task Card ── */}\n  289 |         {activeStop ? (","importStack":null,"filename":"src\\screens\\tabs\\TrackScreen.tsx","targetModuleName":null,"originModulePath":null}
+{"_e":"metro:bundling:started","_t":1789200592987,"id":"5","platform":"android","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1789200592987,"id":"5","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:done","_t":1789200593082,"id":"5","total":1,"ms":94.3824}
+{"_e":"metro:client_log","_t":1789200612327,"level":"warn","data":["The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation."]}
+{"_e":"root:init","_t":1789202540605,"format":"v0-jsonl","version":"57.0.22"}
+{"_e":"env:mode","_t":1789202540647,"nodeEnv":"development","babelEnv":"development","mode":"development"}
+{"_e":"env:load","_t":1789202540673,"mode":"development","files":[],"env":{}}
+{"_e":"devserver:start","_t":1789202550041,"mode":"development","web":true,"baseUrl":"","asyncRoutes":false,"routerRoot":"../..\\..\\app","serverComponents":false,"serverActions":false,"serverRendering":false,"apiRoutes":false,"exporting":false}
+{"_e":"metro:config","_t":1789202554297,"serverRoot":"../..\\..","projectRoot":"../..\\..","exporting":false,"flags":{"autolinkingModuleResolution":false,"serverActions":false,"serverComponents":false,"reactCompiler":false,"optimizeGraph":false,"treeshaking":false,"logbox":false}}
+{"_e":"expo:dev-tools-plugin:load","_t":1789202557648,"plugins":[]}
+{"_e":"metro:instantiate","_t":1789202576589,"atlas":false,"workers":6,"host":"::","port":8081}
+{"_e":"metro:bundling:started","_t":1789202731283,"id":"1","platform":"android","environment":null,"entry":"node_modules\\expo\\AppEntry.js"}
+{"_e":"metro:bundling:progress","_t":1789202731283,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789202731291,"id":"1","progress":0,"total":1,"current":0}
+{"_e":"metro:bundling:progress","_t":1789202731391,"id":"1","progress":0.0048674959437533805,"total":129,"current":9}
+{"_e":"metro:bundling:progress","_t":1789202731492,"id":"1","progress":0.0650559753478995,"total":247,"current":63}
+{"_e":"metro:bundling:progress","_t":1789202731592,"id":"1","progress":0.20184835118672548,"total":345,"current":155}
+{"_e":"metro:bundling:progress","_t":1789202731692,"id":"1","progress":0.2708474968204416,"total":465,"current":242}
+{"_e":"metro:bundling:progress","_t":1789202731800,"id":"1","progress":0.3241103813351632,"total":606,"current":345}
+{"_e":"metro:bundling:progress","_t":1789202731946,"id":"1","progress":0.3241103813351632,"total":2416,"current":345}
+{"_e":"metro:bundling:progress","_t":1789202732045,"id":"1","progress":0.3241103813351632,"total":2450,"current":442}
+{"_e":"metro:bundling:progress","_t":1789202732198,"id":"1","progress":0.3241103813351632,"total":2450,"current":443}
+{"_e":"metro:bundling:progress","_t":1789202732300,"id":"1","progress":0.3241103813351632,"total":2567,"current":595}
+{"_e":"metro:bundling:progress","_t":1789202732400,"id":"1","progress":0.3241103813351632,"total":2572,"current":605}
+{"_e":"metro:bundling:progress","_t":1789202732419,"id":"1","progress":0.3241103813351632,"total":2572,"current":606}
+{"_e":"metro:bundling:progress","_t":1789202732519,"id":"1","progress":0.49305295211743166,"total":2572,"current":1806}
+{"_e":"metro:bundling:progress","_t":1789202732619,"id":"1","progress":0.8830948898655693,"total":2605,"current":2448}
+{"_e":"metro:bundling:progress","_t":1789202732719,"id":"1","progress":0.9128656503658382,"total":2693,"current":2573}
+{"_e":"metro:bundling:progress","_t":1789202732819,"id":"1","progress":0.9324618814526885,"total":2794,"current":2698}
+{"_e":"metro:bundling:progress","_t":1789202732923,"id":"1","progress":0.9563084344246009,"total":2852,"current":2789}
+{"_e":"metro:bundling:progress","_t":1789202733068,"id":"1","progress":0.999,"total":2978,"current":2978}
+{"_e":"metro:bundling:done","_t":1789202733275,"id":"1","total":2978,"ms":1991.9784}
+{"_e":"metro:client_log","_t":1789202746691,"level":"warn","data":["The global process.env.EXPO_OS is not defined. This should be inlined by babel-preset-expo during transformation."]}

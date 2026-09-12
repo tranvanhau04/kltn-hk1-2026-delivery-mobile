@@ -57,7 +57,7 @@ export const StopDetailScreen = () => {
       destLng: stop.order.lng,
       address: stop.order.delivery_address,
       customerName: stop.order.receiver_name,
-      autoStartNavigation: true,
+      autoStartNavigation: false,
     });
   };
 

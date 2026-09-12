@@ -12,18 +12,20 @@ export interface OSMMapViewProps {
   routePolyline?: Array<[number, number]>;
   navPolyline?: Array<[number, number]>;
   targetCoord?: { latitude: number; longitude: number };
+  isNavigating?: boolean;
 }
 
-export const OSMMapView: React.FC<OSMMapViewProps> = ({ 
-  latitude = 10.8222, 
-  longitude = 106.6875, 
-  zoom = 15, 
+export const OSMMapView: React.FC<OSMMapViewProps> = ({
+  latitude = 10.8222,
+  longitude = 106.6875,
+  zoom = 15,
   style,
   driverCoords,
   stops,
   routePolyline,
   navPolyline,
-  targetCoord
+  targetCoord,
+  isNavigating
 }) => {
   const webViewRef = useRef<WebView>(null);
   const [isReady, setIsReady] = useState(false);
@@ -91,11 +93,31 @@ export const OSMMapView: React.FC<OSMMapViewProps> = ({
 
             // Update Driver Location & Center Map
             if (data.driverCoords && data.driverCoords.latitude && data.driverCoords.longitude) {
+              var heading = data.driverCoords.heading || 0;
+              var isNavigating = data.isNavigating;
+              
+              var dIconHtml = '';
+              if (isNavigating) {
+                dIconHtml = '<div style="transform: rotate(' + heading + 'deg); width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" width="24" height="24"><polygon points="12 2 19 21 12 17 5 21" fill="#2563EB" stroke="#FFFFFF" stroke-width="2"/></svg></div>';
+              } else {
+                dIconHtml = '<div style="background:#EF4444;width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.4);"></div>';
+              }
+              
+              var iconSize = isNavigating ? [24, 24] : [18, 18];
+              var iconAnchor = isNavigating ? [12, 12] : [9, 9];
+
+              var dIcon = L.divIcon({ html: dIconHtml, className: '', iconSize: iconSize, iconAnchor: iconAnchor });
+              
               if (!driverMarker) {
-                var dIcon = L.divIcon({ html: '<div style="background:#EF4444;width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.4);"></div>', className: '', iconSize: [18, 18], iconAnchor: [9, 9] });
                 driverMarker = L.marker([data.driverCoords.latitude, data.driverCoords.longitude], { icon: dIcon }).addTo(map);
               } else {
                 driverMarker.setLatLng([data.driverCoords.latitude, data.driverCoords.longitude]);
+                driverMarker.setIcon(dIcon);
+              }
+
+              // In Navigation Mode, keep the map camera centered and zoomed in closely on the driver's live GPS position as it updates.
+              if (isNavigating) {
+                map.setView([data.driverCoords.latitude, data.driverCoords.longitude], 18);
               }
             }
 
@@ -127,11 +149,11 @@ export const OSMMapView: React.FC<OSMMapViewProps> = ({
 
   useEffect(() => {
     if (isReady && webViewRef.current) {
-      const data = { driverCoords, stops, routePolyline, navPolyline, targetCoord, zoom };
+      const data = { driverCoords, stops, routePolyline, navPolyline, targetCoord, zoom, isNavigating };
       const script = `updateMap(${JSON.stringify(data)});`;
       webViewRef.current.injectJavaScript(script);
     }
-  }, [driverCoords, stops, routePolyline, navPolyline, targetCoord, zoom, isReady]);
+  }, [driverCoords, stops, routePolyline, navPolyline, targetCoord, zoom, isReady, isNavigating]);
 
   return (
     <View style={[styles.container, style]}>
