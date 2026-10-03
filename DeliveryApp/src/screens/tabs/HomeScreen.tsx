@@ -18,7 +18,6 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -29,7 +28,6 @@ import {
   Clock,
   Truck,
   Power,
-  ChevronRight,
   LogOut,
 } from 'lucide-react-native';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
