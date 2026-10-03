@@ -11,7 +11,7 @@
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { loginApi, fetchDriverProfile, updateShiftStatusApi, ApiLoginResponse, ApiDriverProfile } from '../lib/api';
+import { loginApi, fetchDriverProfile, updateShiftStatusApi, ApiLoginResponse } from '../lib/api';
 
 // ─── Storage Keys ─────────────────────────────────────────────────────────────
 const STORE_KEY_ACCESS = 'auth_access_token';
@@ -66,12 +66,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const isAuthenticated = !!accessToken && !!user;
 
-  // ─── Boot: check stored token ────────────────────────────────────────────────
-  useEffect(() => {
-    checkStoredToken();
+  // ─── Load driver profile from backend ────────────────────────────────────────
+  const loadDriverProfile = useCallback(async (userId: string, token: string) => {
+    setIsLoadingDriver(true);
+    try {
+      const profile = await fetchDriverProfile(userId, token);
+      setDriverProfile({
+        userId: profile.userId,
+        licensePlate: profile.licensePlate,
+        vehicleType: profile.vehicleType,
+        maxWeightKg: profile.maxWeightKg,
+        maxVolumeM3: profile.maxVolumeM3,
+        currentShiftStatus: profile.currentShiftStatus as DriverProfile['currentShiftStatus'],
+      });
+    } catch (err) {
+      console.warn('[AuthContext] Failed to load driver profile:', err);
+    } finally {
+      setIsLoadingDriver(false);
+    }
   }, []);
 
-  async function checkStoredToken() {
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
+  const clearStorage = useCallback(async () => {
+    await SecureStore.deleteItemAsync(STORE_KEY_ACCESS);
+    await SecureStore.deleteItemAsync(STORE_KEY_REFRESH);
+    await SecureStore.deleteItemAsync(STORE_KEY_USER);
+  }, []);
+
+  // ─── Boot: check stored token ────────────────────────────────────────────────
+  const checkStoredToken = useCallback(async () => {
     try {
       const storedToken = await SecureStore.getItemAsync(STORE_KEY_ACCESS);
       const storedUser = await SecureStore.getItemAsync(STORE_KEY_USER);
@@ -93,27 +116,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [loadDriverProfile, clearStorage]);
 
-  // ─── Load driver profile from backend ────────────────────────────────────────
-  async function loadDriverProfile(userId: string, token: string) {
-    setIsLoadingDriver(true);
-    try {
-      const profile = await fetchDriverProfile(userId, token);
-      setDriverProfile({
-        userId: profile.userId,
-        licensePlate: profile.licensePlate,
-        vehicleType: profile.vehicleType,
-        maxWeightKg: profile.maxWeightKg,
-        maxVolumeM3: profile.maxVolumeM3,
-        currentShiftStatus: profile.currentShiftStatus as DriverProfile['currentShiftStatus'],
-      });
-    } catch (err) {
-      console.warn('[AuthContext] Failed to load driver profile:', err);
-    } finally {
-      setIsLoadingDriver(false);
-    }
-  }
+  useEffect(() => {
+    checkStoredToken();
+  }, [checkStoredToken]);
 
   // ─── Login ───────────────────────────────────────────────────────────────────
   const login = useCallback(async (email: string, password: string) => {
@@ -131,7 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (response.user.role === 'DRIVER') {
       await loadDriverProfile(response.user.id, response.accessToken);
     }
-  }, []);
+  }, [loadDriverProfile]);
 
   // ─── Logout ──────────────────────────────────────────────────────────────────
   const logout = useCallback(async () => {
@@ -139,14 +146,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAccessToken(null);
     setUser(null);
     setDriverProfile(null);
-  }, []);
+  }, [clearStorage]);
 
   // ─── Refresh driver profile ──────────────────────────────────────────────────
   const refreshDriverProfile = useCallback(async () => {
     if (user && accessToken) {
       await loadDriverProfile(user.id, accessToken);
     }
-  }, [user, accessToken]);
+  }, [user, accessToken, loadDriverProfile]);
 
   // ─── Toggle Shift Status (OFFLINE ↔ ONLINE_READY) ───────────────────────────
   const toggleShiftStatus = useCallback(async () => {

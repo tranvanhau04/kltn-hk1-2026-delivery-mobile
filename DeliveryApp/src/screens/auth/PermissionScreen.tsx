@@ -7,7 +7,7 @@
  * "CẤP QUYỀN" button only enabled when all 3 permissions are granted.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert, Linking, Platform } from 'react-native';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapPin, Camera as CameraIcon, Bell } from 'lucide-react-native';
 import * as Location from 'expo-location';

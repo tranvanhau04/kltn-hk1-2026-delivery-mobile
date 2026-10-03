@@ -18,7 +18,6 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -29,7 +28,7 @@ import {
   Clock,
   Truck,
   Power,
-  ChevronRight,
+  LogOut,
 } from 'lucide-react-native';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAuth } from '../../context/AuthContext';
@@ -54,7 +53,7 @@ const SummaryCard = ({ icon, label, value, color, bgColor }: SummaryCardProps) =
 
 // ─── Main HomeScreen ───────────────────────────────────────────────────────────
 export const HomeScreen = () => {
-  const { user, driverProfile, isLoadingDriver, toggleShiftStatus } = useAuth();
+  const { user, driverProfile, isLoadingDriver, toggleShiftStatus, logout } = useAuth();
   const { route, stops, isLoadingRoute } = useAppContext();
 
   const isOnline = driverProfile?.currentShiftStatus === 'ONLINE_READY';
@@ -87,6 +86,28 @@ export const HomeScreen = () => {
     }
   };
 
+  // ─── Handle logout ────────────────────────────────────────────────────────
+  const handleLogout = () => {
+    Alert.alert(
+      'Đăng xuất tài khoản',
+      'Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng không?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Đăng xuất',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+            } catch {
+              Alert.alert('Lỗi', 'Không thể đăng xuất, vui lòng thử lại.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // ─── Format COD amount ────────────────────────────────────────────────────
   const formatCod = (amount: number) => {
     if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M`;
@@ -110,7 +131,7 @@ export const HomeScreen = () => {
       >
         {/* ── Header: Greeting ───────────────────────────────────────────── */}
         <View style={styles.header}>
-          <View>
+          <View style={{ flex: 1, paddingRight: 12 }}>
             <Text style={styles.greeting}>Xin chào 👋</Text>
             <Text style={styles.driverName}>{user?.fullName ?? 'Tài xế'}</Text>
             {driverProfile && (
@@ -122,11 +143,20 @@ export const HomeScreen = () => {
               </View>
             )}
           </View>
-          <View style={[styles.statusBadge, isOnline ? styles.badgeOnline : styles.badgeOffline]}>
-            <View style={[styles.statusDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
-            <Text style={[styles.statusText, isOnline ? styles.textOnline : styles.textOffline]}>
-              {isOnline ? 'Trực tuyến' : isBusy ? 'Đang bận' : 'Ngoại tuyến'}
-            </Text>
+          <View style={styles.headerRight}>
+            <View style={[styles.statusBadge, isOnline ? styles.badgeOnline : styles.badgeOffline]}>
+              <View style={[styles.statusDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
+              <Text style={[styles.statusText, isOnline ? styles.textOnline : styles.textOffline]}>
+                {isOnline ? 'Trực tuyến' : isBusy ? 'Đang bận' : 'Ngoại tuyến'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.headerLogoutBtn}
+              onPress={handleLogout}
+              activeOpacity={0.7}
+            >
+              <LogOut color={COLORS.danger} size={18} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -290,13 +320,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textSecondary,
   },
+  headerRight: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  headerLogoutBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    marginTop: 4,
   },
   badgeOnline: {
     backgroundColor: '#D1FAE5',
