@@ -43,6 +43,7 @@ type AuthContextType = {
   isLoading: boolean;
   user: AuthUser | null;
   accessToken: string | null;
+  token: string | null; // Alias for accessToken
 
   // Driver profile
   driverProfile: DriverProfile | null;
@@ -174,13 +175,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, accessToken, driverProfile]);
 
-  // ─── Helpers ─────────────────────────────────────────────────────────────────
-  async function clearStorage() {
-    await SecureStore.deleteItemAsync(STORE_KEY_ACCESS);
-    await SecureStore.deleteItemAsync(STORE_KEY_REFRESH);
-    await SecureStore.deleteItemAsync(STORE_KEY_USER);
-  }
-
   return (
     <AuthContext.Provider
       value={{
@@ -188,6 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         user,
         accessToken,
+        token: accessToken,
         driverProfile,
         isLoadingDriver,
         login,

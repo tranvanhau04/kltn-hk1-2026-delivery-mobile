@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { Driver, Shift, Route, Stop } from '../types/mobile';
-import { MOCK_DRIVER, MOCK_SHIFT, MOCK_ROUTE, MOCK_STOPS } from '../data/mockDriverData';
+import { MOCK_DRIVER, MOCK_SHIFT } from '../data/mockDriverData';
 import { fetchDriverRoute } from '../lib/api';
 import { useAuth } from './AuthContext';
 
@@ -25,11 +25,11 @@ type AppContextType = {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [driver, setDriver] = useState<Driver>(MOCK_DRIVER);
   const [shift, setShift] = useState<Shift | null>(MOCK_SHIFT);
-  const [route, setRoute] = useState<Route | null>(MOCK_ROUTE);
-  const [stops, setStops] = useState<Stop[]>(MOCK_STOPS);
+  const [route, setRoute] = useState<Route | null>(null);
+  const [stops, setStops] = useState<Stop[]>([]);
   const [polylineCoords, setPolylineCoords] = useState<[number, number][]>([]);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
 
@@ -37,7 +37,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const driverId = overrideDriverId || user?.id || ACTIVE_DRIVER_ID;
     setIsLoadingRoute(true);
     try {
-      const data = await fetchDriverRoute(driverId);
+      const data = await fetchDriverRoute(driverId, token || undefined);
       if (data.success && data.route && data.stops?.length) {
         const mappedStops: Stop[] = data.stops.map((s) => ({
           id: s.id,
@@ -83,12 +83,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setStops([]);
         setPolylineCoords([]);
       }
-    } catch {
-      // Keep existing state or empty gracefully
+    } catch (err) {
+      console.warn('[AppContext] refreshRoute failed:', err);
     } finally {
       setIsLoadingRoute(false);
     }
-  }, [user?.id]);
+  }, [user?.id, token]);
 
   // Fetch route when user changes
   useEffect(() => {
