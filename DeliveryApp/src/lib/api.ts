@@ -93,7 +93,42 @@ export interface ApiDriverRouteResponse {
   message?: string;
 }
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
+// ─── Auth Types ───────────────────────────────────────────────────────────────
+
+export interface ApiLoginUser {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  role: string;
+  status: string;
+}
+
+export interface ApiLoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresIn: string;
+  user: ApiLoginUser;
+}
+
+export interface ApiDriverProfile {
+  userId: string;
+  licensePlate: string;
+  vehicleType: string;
+  maxWeightKg: number;
+  maxVolumeM3: number;
+  currentShiftStatus: string;
+  user: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    status: string;
+  } | null;
+}
+
+// ─── Helper (unauthenticated) ─────────────────────────────────────────────────
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const controller = new AbortController();
@@ -105,7 +140,8 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
       ...options,
     });
     if (!res.ok) {
-      throw new Error(`API ${path} failed: ${res.status}`);
+      const body = await res.text().catch(() => '');
+      throw new Error(`API ${path} failed: ${res.status} ${body}`);
     }
     return res.json() as Promise<T>;
   } finally {
@@ -113,7 +149,72 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   }
 }
 
-// ─── API Functions ────────────────────────────────────────────────────────────
+/**
+ * Authenticated fetch — attaches Bearer token from AuthContext.
+ * Token is passed explicitly rather than read from storage,
+ * so AuthContext remains the single source of truth.
+ */
+async function apiFetchAuth<T>(path: string, token: string, options?: RequestInit): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      signal: controller.signal,
+      ...options,
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`API ${path} failed: ${res.status} ${body}`);
+    }
+    return res.json() as Promise<T>;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// ─── Auth API ─────────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/auth/login
+ * Authenticate driver with email + password.
+ */
+export async function loginApi(email: string, password: string): Promise<ApiLoginResponse> {
+  return apiFetch<ApiLoginResponse>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+/**
+ * GET /api/drivers/:userId
+ * Fetch driver profile (vehicle info, shift status).
+ * Requires authentication.
+ */
+export async function fetchDriverProfile(userId: string, token: string): Promise<ApiDriverProfile> {
+  return apiFetchAuth<ApiDriverProfile>(`/drivers/${userId}`, token);
+}
+
+/**
+ * PATCH /api/drivers/:userId/shift-status
+ * Update driver shift status (OFFLINE ↔ ONLINE_READY).
+ * Requires authentication.
+ */
+export async function updateShiftStatusApi(
+  userId: string,
+  newStatus: string,
+  token: string,
+): Promise<unknown> {
+  return apiFetchAuth<unknown>(`/drivers/${userId}/shift-status`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ currentShiftStatus: newStatus }),
+  });
+}
+
+// ─── Route & Location API ─────────────────────────────────────────────────────
 
 /**
  * Fetch the assigned route and stops for a specific driver.

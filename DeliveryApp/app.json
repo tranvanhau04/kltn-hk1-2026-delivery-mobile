@@ -3,6 +3,9 @@
   "displayName": "DeliveryApp",
   "expo": {
     "name": "DeliveryApp",
-    "slug": "DeliveryApp"
+    "slug": "DeliveryApp",
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }
