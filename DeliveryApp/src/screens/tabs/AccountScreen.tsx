@@ -27,6 +27,7 @@ import {
 } from 'lucide-react-native';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 
 // ─── Driver constants (extends mock data) ────────────────────────────────────
 const DRIVER_EXTENDED = {
@@ -93,14 +94,25 @@ const MetricCard = ({ icon, value, label, accent }: MetricCardProps) => (
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export const AccountScreen = () => {
   const { driver, shift } = useAppContext();
+  const { user, driverProfile, logout } = useAuth();
 
   const handleLogout = () => {
     Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out of IUH Logistics Mobile?',
+      'Đăng xuất tài khoản',
+      'Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng IUH Logistics không?',
       [
         { text: 'Hủy', style: 'cancel' },
-        { text: 'Đăng xuất', style: 'destructive', onPress: () => Alert.alert('Đã đăng xuất') },
+        {
+          text: 'Đăng xuất',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+            } catch {
+              Alert.alert('Lỗi', 'Không thể đăng xuất, vui lòng thử lại.');
+            }
+          },
+        },
       ]
     );
   };
@@ -133,8 +145,10 @@ export const AccountScreen = () => {
               </View>
             </View>
             <View style={{ flex: 1, marginLeft: 14 }}>
-              <Text style={styles.driverName}>{driver.name}</Text>
-              <Text style={styles.employeeId}>{DRIVER_EXTENDED.employee_id}</Text>
+              <Text style={styles.driverName}>{user?.fullName ?? driver.name}</Text>
+              <Text style={styles.employeeId}>
+                {driverProfile ? `${driverProfile.licensePlate} • ${driverProfile.vehicleType}` : DRIVER_EXTENDED.employee_id}
+              </Text>
 
               {/* Rating */}
               <View style={styles.ratingRow}>
@@ -155,13 +169,12 @@ export const AccountScreen = () => {
           <View style={styles.contactRow}>
             <Phone color={COLORS.textSecondary} size={14} style={{ marginRight: 8 }} />
             <Text style={styles.contactText}>
-              {/* Phone not in mock but displayed from context */}
-              +84 90 123 4567
+              {user?.phone || '+84 90 123 4567'}
             </Text>
           </View>
           <View style={[styles.contactRow, { marginTop: 6 }]}>
             <Mail color={COLORS.textSecondary} size={14} style={{ marginRight: 8 }} />
-            <Text style={styles.contactText}>{DRIVER_EXTENDED.email}</Text>
+            <Text style={styles.contactText}>{user?.email || DRIVER_EXTENDED.email}</Text>
           </View>
         </View>
 
