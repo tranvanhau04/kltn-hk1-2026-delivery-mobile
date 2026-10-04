@@ -389,6 +389,58 @@ export async function markStopArrivedApi(
 }
 
 /**
+ * Helper to append a local file (from Camera/ImagePicker) to FormData.
+ * Modern React Native (0.86+ / Expo 57) enforces WinterCG compliance where FormData
+ * only accepts Blob or File objects. Appending legacy { uri, name, type } plain objects
+ * causes "Unsupported FormDataPart implementation" error.
+ */
+async function appendFileToFormData(
+  formData: FormData,
+  fieldName: string,
+  uri: string,
+  defaultFilename: string,
+): Promise<void> {
+  const filename = uri.split('/').pop() || defaultFilename;
+  const match = /\.(\w+)$/.exec(filename);
+  const ext = match ? match[1].toLowerCase() : 'jpg';
+  const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+
+  try {
+    const res = await fetch(uri);
+    const rawBlob = await res.blob();
+
+    // Ensure blob has a concrete image MIME type
+    let finalBlob: Blob = rawBlob;
+    if (!rawBlob.type || !rawBlob.type.startsWith('image/')) {
+      try {
+        finalBlob = rawBlob.slice(0, rawBlob.size, mimeType);
+      } catch {
+        finalBlob = rawBlob;
+      }
+    }
+
+    if (typeof File !== 'undefined') {
+      try {
+        const file = new File([finalBlob], filename, { type: mimeType });
+        (formData as any).append(fieldName, file, filename);
+        return;
+      } catch {
+        // Fallback to Blob append
+      }
+    }
+
+    (formData as any).append(fieldName, finalBlob, filename);
+  } catch (err) {
+    console.warn('[api] Failed to convert URI to Blob, falling back to legacy object:', err);
+    formData.append(fieldName, {
+      uri,
+      name: filename,
+      type: mimeType,
+    } as any);
+  }
+}
+
+/**
  * POST /api/stops/:id/pod
  * Submits proof of delivery with required package photo and COD collected amount.
  */
@@ -401,17 +453,7 @@ export async function submitStopPodApi(
 ): Promise<ApiSubmitPodResponse> {
   const formData = new FormData();
 
-  // Extract file extension or default to .jpg
-  const filename = photoUri.split('/').pop() || 'pod_photo.jpg';
-  const match = /\.(\w+)$/.exec(filename);
-  const ext = match ? match[1].toLowerCase() : 'jpg';
-  const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-
-  formData.append('file', {
-    uri: photoUri,
-    name: filename,
-    type: mimeType,
-  } as any);
+  await appendFileToFormData(formData, 'file', photoUri, 'pod_photo.jpg');
 
   if (codCollected !== undefined && codCollected !== null) {
     formData.append('codCollected', String(codCollected));
@@ -448,16 +490,7 @@ export async function failStopApi(
   }
 
   if (payload.photoUri) {
-    const filename = payload.photoUri.split('/').pop() || 'fail_photo.jpg';
-    const match = /\.(\w+)$/.exec(filename);
-    const ext = match ? match[1].toLowerCase() : 'jpg';
-    const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-
-    formData.append('file', {
-      uri: payload.photoUri,
-      name: filename,
-      type: mimeType,
-    } as any);
+    await appendFileToFormData(formData, 'file', payload.photoUri, 'fail_photo.jpg');
   }
 
   return apiFetchMultipart<ApiFailStopResponse>(`/stops/${stopId}/fail`, token, formData);
