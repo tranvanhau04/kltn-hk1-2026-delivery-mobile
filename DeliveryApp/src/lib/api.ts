@@ -281,7 +281,13 @@ export async function updateShiftStatusApi(
  * Fetch the assigned route and stops for a specific driver.
  * Returns { success: false, route: null, stops: [] } when no route exists today.
  */
-export async function fetchDriverRoute(driverId: string): Promise<ApiDriverRouteResponse> {
+export async function fetchDriverRoute(
+  driverId: string,
+  token?: string,
+): Promise<ApiDriverRouteResponse> {
+  if (token) {
+    return apiFetchAuth<ApiDriverRouteResponse>(`/driver/${driverId}/route`, token);
+  }
   return apiFetch<ApiDriverRouteResponse>(`/driver/${driverId}/route`);
 }
 
