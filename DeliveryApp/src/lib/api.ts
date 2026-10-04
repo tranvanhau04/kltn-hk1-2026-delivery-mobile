@@ -149,6 +149,17 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   }
 }
 
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public message: string,
+    public data?: unknown,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 /**
  * Authenticated fetch — attaches Bearer token from AuthContext.
  * Token is passed explicitly rather than read from storage,
@@ -156,7 +167,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
  */
 async function apiFetchAuth<T>(path: string, token: string, options?: RequestInit): Promise<T> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
+  const timeout = setTimeout(() => controller.abort(), 10000);
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       headers: {
@@ -167,8 +178,58 @@ async function apiFetchAuth<T>(path: string, token: string, options?: RequestIni
       ...options,
     });
     if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      throw new Error(`API ${path} failed: ${res.status} ${body}`);
+      let errorMsg = `Yêu cầu thất bại (${res.status})`;
+      let errorData: any = null;
+      try {
+        errorData = await res.json();
+        if (Array.isArray(errorData?.message)) {
+          errorMsg = errorData.message.join('\n');
+        } else if (typeof errorData?.message === 'string') {
+          errorMsg = errorData.message;
+        }
+      } catch {
+        const text = await res.text().catch(() => '');
+        if (text) errorMsg = text;
+      }
+      throw new ApiError(res.status, errorMsg, errorData);
+    }
+    return res.json() as Promise<T>;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * Authenticated multipart/form-data fetch — uploads files (photo) with Bearer token.
+ * Note: Do NOT set Content-Type header manually; fetch handles multipart boundary.
+ */
+async function apiFetchMultipart<T>(path: string, token: string, formData: FormData): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout for image uploads
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      let errorMsg = `Tải lên thất bại (${res.status})`;
+      let errorData: any = null;
+      try {
+        errorData = await res.json();
+        if (Array.isArray(errorData?.message)) {
+          errorMsg = errorData.message.join('\n');
+        } else if (typeof errorData?.message === 'string') {
+          errorMsg = errorData.message;
+        }
+      } catch {
+        const text = await res.text().catch(() => '');
+        if (text) errorMsg = text;
+      }
+      throw new ApiError(res.status, errorMsg, errorData);
     }
     return res.json() as Promise<T>;
   } finally {
@@ -259,3 +320,128 @@ export async function startDriverShift(driverId: string): Promise<void> {
     method: 'POST',
   });
 }
+
+// ─── Task 8.1 & 8.2: Stop POD & Delivery Execution APIs ───────────────────────
+
+export interface ApiArrivedResponse {
+  success: boolean;
+  data: {
+    stopId: string;
+    status: ApiStopStatus;
+    arrivedAt: string;
+  };
+}
+
+export interface ApiSubmitPodResponse {
+  success: boolean;
+  data: {
+    stopId: string;
+    stopStatus: ApiStopStatus;
+    orderStatus: string;
+    codCollected: number;
+    shiftCodCollected: number;
+    photoUrl: string;
+  };
+}
+
+export interface ApiFailStopResponse {
+  success: boolean;
+  data: {
+    stopId: string;
+    stopStatus: ApiStopStatus;
+    orderStatus: string;
+    action: 'FAILED' | 'RESCHEDULED';
+    failureReason: string;
+    rescheduledDate: string | null;
+    photoUrl: string | null;
+  };
+}
+
+/**
+ * PATCH /api/stops/:id/arrived
+ * Records arrived_at timestamp when driver is present at the customer's location.
+ */
+export async function markStopArrivedApi(
+  stopId: string,
+  token: string,
+): Promise<ApiArrivedResponse> {
+  return apiFetchAuth<ApiArrivedResponse>(`/stops/${stopId}/arrived`, token, {
+    method: 'PATCH',
+  });
+}
+
+/**
+ * POST /api/stops/:id/pod
+ * Submits proof of delivery with required package photo and COD collected amount.
+ */
+export async function submitStopPodApi(
+  stopId: string,
+  photoUri: string,
+  codCollected: number | undefined,
+  notes: string | undefined,
+  token: string,
+): Promise<ApiSubmitPodResponse> {
+  const formData = new FormData();
+
+  // Extract file extension or default to .jpg
+  const filename = photoUri.split('/').pop() || 'pod_photo.jpg';
+  const match = /\.(\w+)$/.exec(filename);
+  const ext = match ? match[1].toLowerCase() : 'jpg';
+  const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+
+  formData.append('file', {
+    uri: photoUri,
+    name: filename,
+    type: mimeType,
+  } as any);
+
+  if (codCollected !== undefined && codCollected !== null) {
+    formData.append('codCollected', String(codCollected));
+  }
+
+  if (notes && notes.trim().length > 0) {
+    formData.append('notes', notes.trim());
+  }
+
+  return apiFetchMultipart<ApiSubmitPodResponse>(`/stops/${stopId}/pod`, token, formData);
+}
+
+/**
+ * POST /api/stops/:id/fail
+ * Records delivery failure or customer rescheduling with optional evidence photo.
+ */
+export async function failStopApi(
+  stopId: string,
+  payload: {
+    action: 'FAILED' | 'RESCHEDULED';
+    failureReason: string;
+    rescheduledDate?: string;
+    photoUri?: string;
+  },
+  token: string,
+): Promise<ApiFailStopResponse> {
+  const formData = new FormData();
+
+  formData.append('action', payload.action);
+  formData.append('failureReason', payload.failureReason.trim());
+
+  if (payload.action === 'RESCHEDULED' && payload.rescheduledDate) {
+    formData.append('rescheduledDate', payload.rescheduledDate);
+  }
+
+  if (payload.photoUri) {
+    const filename = payload.photoUri.split('/').pop() || 'fail_photo.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const ext = match ? match[1].toLowerCase() : 'jpg';
+    const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+
+    formData.append('file', {
+      uri: payload.photoUri,
+      name: filename,
+      type: mimeType,
+    } as any);
+  }
+
+  return apiFetchMultipart<ApiFailStopResponse>(`/stops/${stopId}/fail`, token, formData);
+}
+

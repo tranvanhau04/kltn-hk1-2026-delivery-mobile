@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MapPin, Phone, ArrowLeft, Package, Wallet, Navigation } from 'lucide-react-native';
+import { MapPin, Phone, ArrowLeft, Package, Wallet, Navigation, CheckCircle2, XCircle } from 'lucide-react-native';
 import { CompositeNavigationProp, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -10,6 +10,8 @@ import { OSMMapView } from '../../components/OSMMapView';
 import { Platform } from 'react-native';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { markStopArrivedApi, ApiError } from '../../lib/api';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 import { MainTabParamList } from '../../navigation/MainTabNavigator';
 
@@ -19,9 +21,12 @@ type StopDetailNavProp = CompositeNavigationProp<
 >;
 
 export const StopDetailScreen = () => {
-  const { stops, markStopArrived } = useAppContext();
+  const { stops, markStopArrived, refreshRoute } = useAppContext();
+  const { token, logout } = useAuth();
   const navigation = useNavigation<StopDetailNavProp>();
   const route = useRoute<RouteProp<TaskStackParamList, 'StopDetail'>>();
+  
+  const [isArriving, setIsArriving] = useState(false);
   
   const stopId = route.params.stopId;
   const stop = stops.find(s => s.id === stopId);
@@ -38,6 +43,7 @@ export const StopDetailScreen = () => {
   }
 
   const isArrived = stop.status === 'ARRIVED';
+  const isTerminal = ['COMPLETED', 'FAILED', 'SKIPPED'].includes(stop.status);
 
   const handleCall = () => {
     Linking.openURL(`tel:${stop.order.receiver_phone}`).catch(() => {
@@ -46,7 +52,53 @@ export const StopDetailScreen = () => {
   };
 
   const handleMarkArrived = () => {
-    markStopArrived(stop.id);
+    if (isArriving) return;
+
+    Alert.alert(
+      'Xác nhận đến nơi',
+      `Bạn xác nhận đã có mặt tại địa chỉ giao hàng của đơn ${stop.order.code}?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xác nhận',
+          onPress: async () => {
+            if (!token) {
+              Alert.alert('Lỗi xác thực', 'Phiên đăng nhập không tồn tại. Vui lòng đăng nhập lại.');
+              return;
+            }
+
+            setIsArriving(true);
+            try {
+              const res = await markStopArrivedApi(stop.id, token);
+              if (res.success) {
+                markStopArrived(stop.id);
+                await refreshRoute();
+              }
+            } catch (err: unknown) {
+              if (err instanceof ApiError) {
+                if (err.status === 401) {
+                  Alert.alert('Phiên làm việc hết hạn', 'Vui lòng đăng nhập lại để tiếp tục.', [
+                    { text: 'Đồng ý', onPress: () => logout() },
+                  ]);
+                  return;
+                }
+                if (err.status === 409) {
+                  Alert.alert('Thông báo', 'Điểm dừng này đã được xử lý trước đó.', [
+                    { text: 'Làm mới', onPress: () => refreshRoute() },
+                  ]);
+                  return;
+                }
+                Alert.alert('Không thể cập nhật', err.message);
+              } else {
+                Alert.alert('Lỗi kết nối', 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.');
+              }
+            } finally {
+              setIsArriving(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   /** Navigate to TrackScreen for In-App Navigation */
@@ -160,12 +212,37 @@ export const StopDetailScreen = () => {
 
       {/* Action Buttons Footer */}
       <View style={styles.footer}>
-        {!isArrived ? (
+        {isTerminal ? (
+          <View style={styles.terminalContainer}>
+            {stop.status === 'COMPLETED' ? (
+              <View style={[styles.terminalBanner, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+                <CheckCircle2 color={COLORS.success} size={18} />
+                <Text style={[styles.terminalText, { color: '#065F46' }]}>
+                  Đơn hàng đã được giao thành công
+                </Text>
+              </View>
+            ) : stop.status === 'FAILED' ? (
+              <View style={[styles.terminalBanner, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
+                <XCircle color={COLORS.danger} size={18} />
+                <Text style={[styles.terminalText, { color: '#991B1B' }]}>
+                  Đơn hàng giao thất bại
+                </Text>
+              </View>
+            ) : (
+              <View style={[styles.terminalBanner, { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB' }]}>
+                <Text style={[styles.terminalText, { color: '#374151' }]}>
+                  Đơn hàng đã được hẹn lại / bỏ qua
+                </Text>
+              </View>
+            )}
+          </View>
+        ) : !isArrived ? (
           <View style={styles.footerActions}>
             {/* Chỉ đường button */}
             <TouchableOpacity
               style={[COMMON_STYLES.primaryButton, styles.directionsButton]}
               onPress={handleDirections}
+              disabled={isArriving}
             >
               <Navigation color="#FFF" size={18} style={{ marginRight: 8 }} />
               <Text style={TYPOGRAPHY.buttonText}>Chỉ đường</Text>
@@ -173,11 +250,16 @@ export const StopDetailScreen = () => {
 
             {/* Mark arrived button */}
             <TouchableOpacity
-              style={[COMMON_STYLES.primaryButton, styles.arrivedButton]}
+              style={[COMMON_STYLES.primaryButton, styles.arrivedButton, isArriving && { opacity: 0.7 }]}
               onPress={handleMarkArrived}
+              disabled={isArriving}
             >
-              <MapPin color="#FFF" size={18} style={{ marginRight: 8 }} />
-              <Text style={TYPOGRAPHY.buttonText}>Đã đến nơi</Text>
+              {isArriving ? (
+                <ActivityIndicator color="#FFF" size="small" style={{ marginRight: 8 }} />
+              ) : (
+                <MapPin color="#FFF" size={18} style={{ marginRight: 8 }} />
+              )}
+              <Text style={TYPOGRAPHY.buttonText}>{isArriving ? 'Đang gửi...' : 'Đã đến nơi'}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -306,5 +388,22 @@ const styles = StyleSheet.create({
   arrivedActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  terminalContainer: {
+    width: '100%',
+  },
+  terminalBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: SIZES.radius_md,
+    borderWidth: 1,
+    gap: 8,
+  },
+  terminalText: {
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
