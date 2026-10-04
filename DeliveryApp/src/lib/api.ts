@@ -150,6 +150,8 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export class ApiError extends Error {
+  public readonly isApiError = true;
+
   constructor(
     public status: number,
     public message: string,
@@ -157,7 +159,17 @@ export class ApiError extends Error {
   ) {
     super(message);
     this.name = 'ApiError';
+    Object.setPrototypeOf(this, ApiError.prototype);
   }
+}
+
+export function isApiError(err: unknown): err is ApiError {
+  if (!err || typeof err !== 'object') return false;
+  return (
+    err instanceof ApiError ||
+    (err as any).isApiError === true ||
+    (typeof (err as any).status === 'number' && typeof (err as any).message === 'string')
+  );
 }
 
 /**

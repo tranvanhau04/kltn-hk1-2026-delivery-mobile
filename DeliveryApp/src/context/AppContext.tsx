@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { Driver, Shift, Route, Stop } from '../types/mobile';
-import { MOCK_DRIVER, MOCK_SHIFT, MOCK_ROUTE, MOCK_STOPS } from '../data/mockDriverData';
+import { MOCK_DRIVER, MOCK_SHIFT } from '../data/mockDriverData';
 import { fetchDriverRoute } from '../lib/api';
 import { useAuth } from './AuthContext';
 

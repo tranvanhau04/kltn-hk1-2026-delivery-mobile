@@ -29,7 +29,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { failStopApi, ApiError } from '../../lib/api';
+import { failStopApi, isApiError } from '../../lib/api';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 
 interface FailureOption {
@@ -223,7 +223,7 @@ export const DeliveryFailureScreen = () => {
         );
       }
     } catch (err: unknown) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         if (err.status === 401) {
           Alert.alert('Phiên làm việc hết hạn', 'Vui lòng đăng nhập lại.', [
             { text: 'Đồng ý', onPress: () => logout() },
@@ -233,7 +233,7 @@ export const DeliveryFailureScreen = () => {
         if (err.status === 409) {
           Alert.alert(
             'Đơn hàng đã được xử lý',
-            'Điểm dừng này đã được xử lý trước đó trong hệ thống.',
+            err.message || 'Điểm dừng này đã được xử lý trước đó trong hệ thống.',
             [
               {
                 text: 'Quay lại',
@@ -248,7 +248,8 @@ export const DeliveryFailureScreen = () => {
         }
         Alert.alert('Lỗi gửi báo cáo', err.message);
       } else {
-        Alert.alert('Lỗi kết nối', 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại mạng.');
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        Alert.alert('Lỗi kết nối', `Không thể kết nối đến máy chủ (${errorMsg}). Vui lòng kiểm tra lại mạng.`);
       }
     } finally {
       setIsSubmitting(false);

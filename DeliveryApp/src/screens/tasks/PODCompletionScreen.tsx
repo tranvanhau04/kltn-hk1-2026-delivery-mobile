@@ -28,7 +28,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { submitStopPodApi, ApiError } from '../../lib/api';
+import { submitStopPodApi, isApiError } from '../../lib/api';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 
 export const PODCompletionScreen = () => {
@@ -152,7 +152,7 @@ export const PODCompletionScreen = () => {
         );
       }
     } catch (err: unknown) {
-      if (err instanceof ApiError) {
+      if (isApiError(err)) {
         if (err.status === 401) {
           Alert.alert('Phiên làm việc hết hạn', 'Vui lòng đăng nhập lại.', [
             { text: 'Đồng ý', onPress: () => logout() },
@@ -162,7 +162,7 @@ export const PODCompletionScreen = () => {
         if (err.status === 409) {
           Alert.alert(
             'Đơn hàng đã được xử lý',
-            'Điểm giao này đã được giao thành công hoặc xử lý trước đó.',
+            err.message || 'Điểm giao này đã được xử lý hoàn thành trước đó.',
             [
               {
                 text: 'Quay lại',
@@ -177,7 +177,8 @@ export const PODCompletionScreen = () => {
         }
         Alert.alert('Lỗi gửi POD', err.message);
       } else {
-        Alert.alert('Lỗi kết nối', 'Không thể gửi dữ liệu lên máy chủ. Vui lòng kiểm tra kết nối mạng.');
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        Alert.alert('Lỗi kết nối', `Không thể gửi dữ liệu lên máy chủ (${errorMsg}). Vui lòng kiểm tra lại mạng.`);
       }
     } finally {
       setIsSubmitting(false);
