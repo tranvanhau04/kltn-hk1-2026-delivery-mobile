@@ -55,6 +55,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             lat: s.order?.lat ?? 10.8222,
             lng: s.order?.lng ?? 106.6875,
             cod_amount: s.order?.codAmount ?? 0,
+            weight_kg: (s.order as any)?.weightKg ?? undefined,
+            volume_m3: (s.order as any)?.volumeM3 ?? undefined,
             status: (s.order?.status === 'DELIVERED' ? 'DELIVERED'
               : s.order?.status === 'FAILED' ? 'FAILED'
               : 'PENDING') as Stop['order']['status'],
