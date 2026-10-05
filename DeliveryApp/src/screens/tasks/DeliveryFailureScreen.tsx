@@ -64,6 +64,8 @@ export const DeliveryFailureScreen = () => {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  console.log('Current selectedOption:', selectedOption?.label);
+
   if (!stop) {
     return (
       <View style={[COMMON_STYLES.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -299,6 +301,7 @@ export const DeliveryFailureScreen = () => {
               {FAILURE_OPTIONS.map((option, index) => (
                 <TouchableOpacity
                   key={index}
+                  testID={`option-${index}`}
                   style={[
                     styles.dropdownItem,
                     selectedOption?.label === option.label && styles.dropdownItemSelected,
@@ -455,6 +458,7 @@ export const DeliveryFailureScreen = () => {
       {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity
+          testID="submit-failure-btn"
           style={[
             selectedOption?.action === 'RESCHEDULED'
               ? COMMON_STYLES.primaryButton
