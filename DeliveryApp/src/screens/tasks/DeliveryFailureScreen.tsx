@@ -38,11 +38,11 @@ interface FailureOption {
 }
 
 const FAILURE_OPTIONS: FailureOption[] = [
-  { label: 'Khách hẹn ngày khác', action: 'RESCHEDULED' },
-  { label: 'Khách không nghe máy (đã gọi 3 cuộc)', action: 'FAILED' },
-  { label: 'Khách từ chối nhận hàng (Boom hàng - Chuyển hoàn)', action: 'FAILED' },
-  { label: 'Sai địa chỉ / Không tìm thấy nhà', action: 'FAILED' },
-  { label: 'Kiện hàng có vấn đề / Khách không đồng kiểm', action: 'FAILED' },
+  { label: 'Khách hẹn giao lại ngày khác', action: 'RESCHEDULED' },
+  { label: 'Khách không nghe máy / Không liên lạc được', action: 'FAILED' },
+  { label: 'Khách từ chối nhận hàng (Boom hàng - Chuyển hoàn kho)', action: 'FAILED' },
+  { label: 'Sai địa chỉ / Không tìm thấy người nhận', action: 'FAILED' },
+  { label: 'Hàng hóa bị hư hỏng / Báo sự cố', action: 'FAILED' },
   { label: 'Khu vực cách ly / Không thể tiếp cận', action: 'FAILED' },
   { label: 'Lý do khác', action: 'FAILED' },
 ];

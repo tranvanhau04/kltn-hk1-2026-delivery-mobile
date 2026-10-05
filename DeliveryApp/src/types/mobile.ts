@@ -37,6 +37,8 @@ export type Order = {
   lat: number;
   lng: number;
   cod_amount: number;
+  weight_kg?: number;
+  volume_m3?: number;
   status: 'PENDING' | 'DELIVERED' | 'FAILED' | 'RESCHEDULED';
 };
 

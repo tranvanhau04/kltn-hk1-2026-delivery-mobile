@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MapPin, Phone, ArrowLeft, Package, Wallet, Navigation, CheckCircle2, XCircle } from 'lucide-react-native';
+import { MapPin, Phone, MessageCircle, ArrowLeft, Package, Wallet, Navigation, CheckCircle2, XCircle } from 'lucide-react-native';
 import { CompositeNavigationProp, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -48,6 +48,12 @@ export const StopDetailScreen = () => {
   const handleCall = () => {
     Linking.openURL(`tel:${stop.order.receiver_phone}`).catch(() => {
       Alert.alert('Lỗi', 'Không thể mở ứng dụng gọi điện');
+    });
+  };
+
+  const handleSMS = () => {
+    Linking.openURL(`sms:${stop.order.receiver_phone}`).catch(() => {
+      Alert.alert('Lỗi', 'Không thể mở ứng dụng nhắn tin');
     });
   };
 
@@ -141,9 +147,14 @@ export const StopDetailScreen = () => {
               </Text>
               <Text style={TYPOGRAPHY.bodySecondary}>{stop.order.receiver_phone}</Text>
             </View>
-            <TouchableOpacity style={styles.callCircle} onPress={handleCall}>
-              <Phone color="#FFF" size={20} />
-            </TouchableOpacity>
+            <View style={styles.contactActions}>
+              <TouchableOpacity style={[styles.actionCircle, { backgroundColor: '#16A34A', marginRight: 8 }]} onPress={handleCall}>
+                <Phone color="#FFF" size={18} />
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionCircle, { backgroundColor: '#2563EB' }]} onPress={handleSMS}>
+                <MessageCircle color="#FFF" size={18} />
+              </TouchableOpacity>
+            </View>
           </View>
           
           <View style={styles.addressContainer}>
@@ -191,7 +202,16 @@ export const StopDetailScreen = () => {
           
           <View style={styles.infoRow}>
             <Package color={COLORS.textSecondary} size={20} />
-            <Text style={[TYPOGRAPHY.body, { marginLeft: 8, flex: 1 }]}>Kiện hàng tiêu chuẩn</Text>
+            <View style={{ marginLeft: 8, flex: 1 }}>
+              <Text style={TYPOGRAPHY.body}>Kiện hàng</Text>
+              {(stop.order.weight_kg || stop.order.volume_m3) ? (
+                <Text style={TYPOGRAPHY.bodySecondary}>
+                  {stop.order.weight_kg ? `${stop.order.weight_kg} kg` : ''}
+                  {stop.order.weight_kg && stop.order.volume_m3 ? '  ·  ' : ''}
+                  {stop.order.volume_m3 ? `${(stop.order.volume_m3 * 1000).toFixed(1)} L` : ''}
+                </Text>
+              ) : null}
+            </View>
           </View>
 
           <View style={[styles.infoRow, { borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 12, marginTop: 12 }]}>
@@ -202,7 +222,7 @@ export const StopDetailScreen = () => {
               </Text>
               <Text style={[TYPOGRAPHY.header, { color: stop.order.cod_amount > 0 ? COLORS.primary : COLORS.success }]}>
                 {stop.order.cod_amount > 0
-                  ? `${stop.order.cod_amount.toLocaleString('vi-VN')} VND`
+                  ? `${stop.order.cod_amount.toLocaleString('vi-VN')} ₫`
                   : '✓ Không cần thu COD'}
               </Text>
             </View>
@@ -259,23 +279,25 @@ export const StopDetailScreen = () => {
               ) : (
                 <MapPin color="#FFF" size={18} style={{ marginRight: 8 }} />
               )}
-              <Text style={TYPOGRAPHY.buttonText}>{isArriving ? 'Đang gửi...' : 'Đã đến nơi'}</Text>
+              <Text style={TYPOGRAPHY.buttonText}>{isArriving ? 'ĐANG GỬI...' : 'ĐÃ ĐẾN NƠI'}</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.arrivedActions}>
             <TouchableOpacity 
-              style={[COMMON_STYLES.successButton, { flex: 1, marginRight: 8 }]}
+              style={[COMMON_STYLES.successButton, { flex: 1, marginRight: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
               onPress={() => navigation.navigate('PODCompletion', { stopId: stop.id })}
             >
-              <Text style={TYPOGRAPHY.buttonText}>GIAO THÀNH CÔNG</Text>
+              <CheckCircle2 color="#FFF" size={16} />
+              <Text style={TYPOGRAPHY.buttonText}>Giao thành công</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[COMMON_STYLES.dangerButton, { flex: 1, marginLeft: 8 }]}
+              style={[COMMON_STYLES.dangerButton, { flex: 1, marginLeft: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
               onPress={() => navigation.navigate('DeliveryFailure', { stopId: stop.id })}
             >
-              <Text style={COMMON_STYLES.dangerButtonText}>GIAO THẤT BẠI</Text>
+              <XCircle color={COLORS.danger} size={16} />
+              <Text style={COMMON_STYLES.dangerButtonText}>Báo thất bại</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -319,11 +341,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  callCircle: {
+  contactActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionCircle: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.success,
     justifyContent: 'center',
     alignItems: 'center',
   },
