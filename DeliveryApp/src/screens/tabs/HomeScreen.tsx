@@ -30,9 +30,12 @@ import {
   Power,
   LogOut,
 } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppContext';
+import { RootStackParamList } from '../../navigation/RootNavigator';
 
 // ─── Summary Card Component ────────────────────────────────────────────────────
 type SummaryCardProps = {
@@ -53,6 +56,7 @@ const SummaryCard = ({ icon, label, value, color, bgColor }: SummaryCardProps) =
 
 // ─── Main HomeScreen ───────────────────────────────────────────────────────────
 export const HomeScreen = () => {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user, driverProfile, isLoadingDriver, toggleShiftStatus, logout } = useAuth();
   const { route, stops, isLoadingRoute } = useAppContext();
 
@@ -73,6 +77,12 @@ export const HomeScreen = () => {
   const handleToggleShift = async () => {
     if (isBusy) {
       Alert.alert('Không thể tắt ca', 'Bạn đang có đơn hàng đang xử lý. Hoàn thành trước khi tắt ca.');
+      return;
+    }
+
+    if (isOnline) {
+      // Khi đang mở ca và muốn tắt -> Mở modal Chốt ca & Đối soát COD
+      navigation.navigate('EndShiftModal');
       return;
     }
 
@@ -191,6 +201,17 @@ export const HomeScreen = () => {
               )}
             </TouchableOpacity>
           </View>
+
+          {isOnline && (
+            <TouchableOpacity
+              style={styles.endShiftActionBtn}
+              onPress={() => navigation.navigate('EndShiftModal')}
+              activeOpacity={0.8}
+            >
+              <Banknote color="#B45309" size={16} style={{ marginRight: 6 }} />
+              <Text style={styles.endShiftActionText}>Chốt ca & Đối soát COD Cuối ca</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* ── Summary Cards ──────────────────────────────────────────────── */}
@@ -444,6 +465,23 @@ const styles = StyleSheet.create({
   },
   knobOff: {
     alignSelf: 'flex-start',
+  },
+  endShiftActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: SIZES.radius_md,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  endShiftActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#92400E',
   },
 
   // Section Title

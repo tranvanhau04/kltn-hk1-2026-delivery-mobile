@@ -227,24 +227,34 @@ export const StopListScreen = () => {
       {/* ─── Header ────────────────────────────────────────────────────────── */}
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={TYPOGRAPHY.header}>Danh sách điểm dừng</Text>
             <Text style={styles.headerSubtitle}>
               {route?.route_date ? `Tuyến ngày: ${route.route_date}` : 'Lộ trình giao hàng hôm nay'}
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.refreshIconBtn}
-            onPress={handleRefresh}
-            disabled={isRefreshing || isLoadingRoute}
-            activeOpacity={0.7}
-          >
-            <RefreshCw
-              color={COLORS.primary}
-              size={20}
-              style={isRefreshing ? { transform: [{ rotate: '45deg' }] } : undefined}
-            />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              style={styles.historyIconBtn}
+              onPress={() => navigation.navigate('HistorySync')}
+              activeOpacity={0.7}
+            >
+              <RotateCcw color={COLORS.primary} size={16} style={{ marginRight: 4 }} />
+              <Text style={styles.historyBtnText}>Đồng bộ</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.refreshIconBtn}
+              onPress={handleRefresh}
+              disabled={isRefreshing || isLoadingRoute}
+              activeOpacity={0.7}
+            >
+              <RefreshCw
+                color={COLORS.primary}
+                size={20}
+                style={isRefreshing ? { transform: [{ rotate: '45deg' }] } : undefined}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ─── Stats Overview Bar ─────────────────────────────────────────── */}
@@ -458,6 +468,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textSecondary,
     marginTop: 2,
+  },
+  historyIconBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 38,
+    paddingHorizontal: 12,
+    borderRadius: 19,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FFE4E6',
+  },
+  historyBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   refreshIconBtn: {
     width: 38,
