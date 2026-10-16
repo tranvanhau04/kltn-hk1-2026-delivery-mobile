@@ -18,6 +18,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   closeShiftApi,
@@ -30,6 +31,7 @@ export const EndShiftModal = () => {
   const { shift, stops, setDriver, setShift } = useAppContext();
   const { token } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const toast = useToast();
 
   const [codSubmittedText, setCodSubmittedText] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
@@ -127,6 +129,11 @@ export const EndShiftModal = () => {
         });
       }
 
+      toast.success(
+        'Đóng ca thành công',
+        result.message || 'Ca làm việc đã chuyển sang trạng thái chờ đối soát.',
+      );
+
       Alert.alert(
         'Đóng ca thành công',
         result.message || 'Ca làm việc đã chuyển sang trạng thái chờ đối soát thủ quỹ.',
@@ -139,6 +146,7 @@ export const EndShiftModal = () => {
       );
     } catch (err) {
       const msg = isApiError(err) ? err.message : 'Không thể đóng ca trên hệ thống. Vui lòng thử lại sau.';
+      toast.error('Đóng ca thất bại', msg);
       Alert.alert('Đóng ca thất bại', msg);
     } finally {
       setIsSubmitting(false);
@@ -147,6 +155,7 @@ export const EndShiftModal = () => {
 
   const handleConfirm = () => {
     if (!hasEnteredCod) {
+      toast.warning('Chưa nhập số tiền', 'Vui lòng nhập số tiền COD thực tế bạn nộp về két thủ quỹ.');
       Alert.alert('Chưa nhập số tiền', 'Vui lòng nhập số tiền COD thực tế bạn nộp về két thủ quỹ.');
       return;
     }

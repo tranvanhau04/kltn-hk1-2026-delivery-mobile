@@ -28,12 +28,14 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { submitStopPodApi, isApiError } from '../../lib/api';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 
 export const PODCompletionScreen = () => {
   const { stops, refreshRoute } = useAppContext();
   const { token, logout } = useAuth();
+  const toast = useToast();
   const navigation = useNavigation<NativeStackNavigationProp<TaskStackParamList>>();
   const route = useRoute<RouteProp<TaskStackParamList, 'PODCompletion'>>();
 
@@ -124,6 +126,7 @@ export const PODCompletionScreen = () => {
     }
 
     if (!photoUri) {
+      toast.warning('Thiếu ảnh minh chứng', 'Vui lòng chụp ảnh kiện hàng trước khi hoàn thành.');
       Alert.alert('Thiếu ảnh minh chứng', 'Vui lòng chụp ảnh kiện hàng trước khi hoàn thành.');
       return;
     }
@@ -140,6 +143,10 @@ export const PODCompletionScreen = () => {
 
       if (res.success) {
         await refreshRoute();
+        toast.success(
+          'Giao hàng thành công!',
+          `Đơn ${stop.order.code} đã hoàn tất. COD: ${finalAmount.toLocaleString('vi-VN')} ₫`,
+        );
         Alert.alert(
           'Giao hàng thành công! 🎉',
           `Đã ghi nhận minh chứng cho đơn ${stop.order.code}.\nCOD đã thu: ${finalAmount.toLocaleString('vi-VN')} ₫`,

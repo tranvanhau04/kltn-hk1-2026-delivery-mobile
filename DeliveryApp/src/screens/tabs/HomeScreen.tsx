@@ -35,6 +35,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppContext';
+import { useToast } from '../../context/ToastContext';
 import { RootStackParamList } from '../../navigation/RootNavigator';
 
 // ─── Summary Card Component ────────────────────────────────────────────────────
@@ -59,6 +60,7 @@ export const HomeScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user, driverProfile, isLoadingDriver, toggleShiftStatus, logout } = useAuth();
   const { route, stops, isLoadingRoute } = useAppContext();
+  const toast = useToast();
 
   const isOnline = driverProfile?.currentShiftStatus === 'ONLINE_READY';
   const isBusy = driverProfile?.currentShiftStatus === 'BUSY' || driverProfile?.currentShiftStatus === 'ON_DUTY';
@@ -76,7 +78,7 @@ export const HomeScreen = () => {
   // ─── Handle shift toggle ─────────────────────────────────────────────────
   const handleToggleShift = async () => {
     if (isBusy) {
-      Alert.alert('Không thể tắt ca', 'Bạn đang có đơn hàng đang xử lý. Hoàn thành trước khi tắt ca.');
+      toast.warning('Không thể tắt ca', 'Bạn đang có đơn hàng đang xử lý. Hoàn tất giao hàng trước khi tắt ca.');
       return;
     }
 
@@ -88,11 +90,9 @@ export const HomeScreen = () => {
 
     try {
       await toggleShiftStatus();
+      toast.success('Bắt đầu ca làm việc', 'Trạng thái: Sẵn sàng nhận đơn giao hàng.');
     } catch (err: any) {
-      Alert.alert(
-        'Lỗi',
-        `Không thể thay đổi trạng thái ca.\n${err?.message || 'Vui lòng thử lại.'}`,
-      );
+      toast.error('Lỗi bật ca', err?.message || 'Không thể bắt đầu ca làm việc, vui lòng thử lại.');
     }
   };
 
@@ -110,7 +110,7 @@ export const HomeScreen = () => {
             try {
               await logout();
             } catch {
-              Alert.alert('Lỗi', 'Không thể đăng xuất, vui lòng thử lại.');
+              toast.error('Lỗi đăng xuất', 'Không thể đăng xuất, vui lòng thử lại.');
             }
           },
         },
