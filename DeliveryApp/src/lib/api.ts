@@ -321,13 +321,80 @@ export async function postDriverLocation(
 }
 
 /**
- * End the driver's shift on the backend.
+ * End the driver's shift on the backend (Legacy endpoint).
  */
 export async function endDriverShift(driverId: string, codSubmitted: number, notes: string): Promise<void> {
   await apiFetch<unknown>(`/driver/${driverId}/shift/end`, {
     method: 'POST',
     body: JSON.stringify({ codSubmitted, notes }),
   });
+}
+
+// ─── Task 9.1: Close Shift & Shift Summary APIs ──────────────────────────────
+
+export interface ApiCloseShiftResponse {
+  success: boolean;
+  message: string;
+  shift: {
+    id: string;
+    driverId: string;
+    startTime: string;
+    endTime: string | null;
+    status: string;
+    startingCashCod: number;
+    codCollected: number;
+    codSubmitted: number;
+  };
+  summary: {
+    codCollected: number;
+    codSubmitted: number;
+    codDifference: number;
+    pendingStopsWarning: string | null;
+  };
+}
+
+/**
+ * POST /api/shifts/:shiftId/close
+ * Close shift with COD declaration. Requires authentication.
+ */
+export async function closeShiftApi(
+  shiftId: string,
+  codSubmitted: number,
+  notes: string | undefined,
+  token: string,
+): Promise<ApiCloseShiftResponse> {
+  return apiFetchAuth<ApiCloseShiftResponse>(`/shifts/${shiftId}/close`, token, {
+    method: 'POST',
+    body: JSON.stringify({ codSubmitted, notes: notes || undefined }),
+  });
+}
+
+export interface ApiShiftSummaryResponse {
+  shiftStatus: string;
+  activeShift: {
+    id: string;
+    driverId: string;
+    startTime: string;
+    endTime: string | null;
+    status: string;
+    startingCashCod: number;
+    codCollected: number;
+    codSubmitted: number;
+  } | null;
+  assignedOrdersCount: number;
+  deliveredOrdersCount: number;
+  failedOrdersCount: number;
+  pendingCodAmount: number;
+}
+
+/**
+ * GET /api/driver/shift/summary
+ * Fetch shift summary: order counts, COD balance. Requires auth.
+ */
+export async function fetchShiftSummaryApi(
+  token: string,
+): Promise<ApiShiftSummaryResponse> {
+  return apiFetchAuth<ApiShiftSummaryResponse>('/driver/shift/summary', token);
 }
 
 /**

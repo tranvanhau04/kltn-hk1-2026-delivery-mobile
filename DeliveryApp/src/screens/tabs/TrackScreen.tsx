@@ -28,6 +28,7 @@ import { useRoute, RouteProp } from '@react-navigation/native';
 import { MainTabParamList } from '../../navigation/MainTabNavigator';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
+import { useToast } from '../../context/ToastContext';
 import { postDriverLocation } from '../../lib/api';
 
 // Driver ID used for GPS tracking
@@ -59,6 +60,7 @@ const PulsingDot = () => {
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export const TrackScreen = () => {
   const { route, stops, polylineCoords } = useAppContext();
+  const toast = useToast();
   const [cachedPings, setCachedPings] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncSuccess, setLastSyncSuccess] = useState<boolean | null>(null);
@@ -178,17 +180,21 @@ export const TrackScreen = () => {
 
   const handleNavigate = () => {
     if (!driverCoord) {
-      Alert.alert('Chưa có vị trí', 'Vui lòng chờ tín hiệu GPS để bắt đầu di chuyển.');
+      toast.warning('Chưa có vị trí GPS', 'Vui lòng chờ tín hiệu GPS để bắt đầu di chuyển.');
       return;
     }
     
     setIsNavigating(true);
+    toast.info('Bắt đầu dẫn đường', `Đang dẫn đường tới ${activeStop?.order?.receiver_name || 'điểm giao'}`);
   };
 
   const handleSync = async () => {
     setIsSyncing(true);
     try {
       await sendGpsPing();
+      toast.success('Đồng bộ vị trí thành công', 'Tọa độ GPS đã gửi về trung tâm điều phối.');
+    } catch {
+      toast.warning('Lưu ngoại tuyến', 'Mất kết nối mạng, tọa độ GPS được lưu vào bộ nhớ tạm.');
     } finally {
       setTimeout(() => setIsSyncing(false), 800);
     }

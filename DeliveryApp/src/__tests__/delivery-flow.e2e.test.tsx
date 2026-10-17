@@ -185,7 +185,7 @@ describe('Delivery Lifecycle E2E Test (Tasks 8.2 & 8.3)', () => {
       expect(screen.getByText('123 Test St')).toBeTruthy();
       expect(screen.getByText(/2 kg/)).toBeTruthy();
       expect(screen.getByText(/50\.0 L/)).toBeTruthy();
-      const hasCodAmount = screen.getAllByText(/.*/).some(el => el.props.children && String(el.props.children).includes('500') && String(el.props.children).includes('000'));
+      const hasCodAmount = screen.getAllByText(/.*/).some((el: any) => el.props.children && String(el.props.children).includes('500') && String(el.props.children).includes('000'));
       expect(hasCodAmount).toBeTruthy();
     });
 
