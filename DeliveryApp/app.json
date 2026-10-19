@@ -5,7 +5,29 @@
     "name": "DeliveryApp",
     "slug": "DeliveryApp",
     "plugins": [
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Ứng dụng cần truy cập vị trí để theo dõi lộ trình giao hàng và gửi vị trí thực tế đến hệ thống điều phối.",
+          "locationWhenInUsePermission": "Ứng dụng cần truy cập vị trí để theo dõi lộ trình giao hàng và gửi vị trí thực tế đến hệ thống điều phối."
+        }
+      ],
+      "expo-task-manager"
+    ],
+    "ios": {
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Ứng dụng cần truy cập vị trí để theo dõi lộ trình giao hàng và gửi vị trí thực tế đến hệ thống điều phối.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Ứng dụng cần truy cập vị trí để theo dõi lộ trình giao hàng và gửi vị trí thực tế đến hệ thống điều phối."
+      }
+    },
+    "android": {
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
+      ]
+    }
   }
 }
