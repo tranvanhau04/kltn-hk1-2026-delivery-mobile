@@ -172,7 +172,7 @@ describe('Delivery Lifecycle E2E Test (Tasks 8.2 & 8.3)', () => {
 
     let rerender: any;
     try {
-      const result = render(AppTree);
+      const result: any = render(AppTree);
       rerender = result.rerender;
     } catch (e) {
       console.error('Render failed:', e);

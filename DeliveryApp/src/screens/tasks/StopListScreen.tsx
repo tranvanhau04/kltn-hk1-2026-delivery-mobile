@@ -9,8 +9,9 @@
  * - Thẻ tóm tắt tiến độ giao (Tổng, Chờ giao, Đã xong)
  * - Kéo xuống để làm mới (Pull-to-refresh) & Trạng thái trống (Empty State)
  * - Chuyển sang StopDetail (Task 7.4) khi chạm vào card
+ * - Task 9.2: Kết nối Socket.io + theo dõi GPS khi route đang IN_PROGRESS
  */
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -41,9 +42,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { Stop } from '../../types/mobile';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 import { MainTabParamList } from '../../navigation/MainTabNavigator';
+// Task 9.2: Realtime tracking
+import { connectSocket, disconnectSocket, isSocketConnected } from '../../lib/socketClient';
+import { startTracking, stopTracking } from '../../services/LocationService';
 
 type StopListNavProp = CompositeNavigationProp<
   NativeStackNavigationProp<TaskStackParamList, 'StopList'>,
@@ -52,8 +57,40 @@ type StopListNavProp = CompositeNavigationProp<
 
 export const StopListScreen = () => {
   const { stops, route, isLoadingRoute, refreshRoute } = useAppContext();
+  const { accessToken } = useAuth();
   const navigation = useNavigation<StopListNavProp>();
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // ─── Task 9.2: Kết nối Socket.io + GPS khi route IN_PROGRESS ─────────────────
+  useEffect(() => {
+    // Chỉ bật tracking khi có route đang chạy và có token xác thực
+    if (route?.status !== 'IN_PROGRESS' || !accessToken) {
+      return;
+    }
+
+    const shiftId: string | undefined = undefined; // Server tự tìm ca mở của driver
+
+    // 1. Kết nối socket (nếu chưa kết nối)
+    if (!isSocketConnected()) {
+      connectSocket(accessToken);
+    }
+
+    // 2. Bắt đầu theo dõi GPS và emit qua socket
+    startTracking(shiftId).then((result) => {
+      if (result === 'permission_denied') {
+        console.warn('[StopListScreen] GPS permission denied — realtime tracking disabled.');
+      } else {
+        console.log(`[StopListScreen] GPS tracking started (result: ${result})`);
+      }
+    });
+
+    // 3. Cleanup khi component unmount hoặc route thay đổi (không còn IN_PROGRESS)
+    return () => {
+      stopTracking();
+      disconnectSocket();
+      console.log('[StopListScreen] GPS tracking and socket disconnected (cleanup).');
+    };
+  }, [route?.status, route?.id, accessToken]);
 
   // ─── 1. Sắp xếp bản sao dữ liệu theo sequence_no tăng dần (1 -> N) ───────────
   const sortedStops = useMemo(() => {
