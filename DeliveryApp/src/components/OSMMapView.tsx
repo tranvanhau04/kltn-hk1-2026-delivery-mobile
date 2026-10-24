@@ -27,8 +27,9 @@ export const OSMMapView: React.FC<OSMMapViewProps> = ({
   targetCoord,
   isNavigating
 }) => {
-  const webViewRef = useRef<WebView>(null);
+  const webViewRef = useRef<any>(null);
   const [isReady, setIsReady] = useState(false);
+  const WebViewComponent = WebView as any;
 
   // We only generate the HTML shell ONCE to avoid flashing.
   const mapHtml = `
@@ -157,7 +158,7 @@ export const OSMMapView: React.FC<OSMMapViewProps> = ({
 
   return (
     <View style={[styles.container, style]}>
-      <WebView
+      <WebViewComponent
         ref={webViewRef}
         originWhitelist={['*']}
         source={{ html: mapHtml }}
@@ -167,7 +168,7 @@ export const OSMMapView: React.FC<OSMMapViewProps> = ({
         showsVerticalScrollIndicator={false}
         javaScriptEnabled={true}
         domStorageEnabled={true}
-        onMessage={(event) => {
+        onMessage={(event: any) => {
           if (event.nativeEvent.data === 'READY') {
             setIsReady(true);
           } else {
