@@ -37,7 +37,7 @@ import {
   RotateCcw,
   RefreshCw,
 } from 'lucide-react-native';
-import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
+import { CompositeNavigationProp, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
@@ -46,6 +46,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Stop } from '../../types/mobile';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 import { MainTabParamList } from '../../navigation/MainTabNavigator';
+import { getQueue } from '../../lib/offlineQueue';
 // Task 9.2: Realtime tracking
 import { connectSocket, disconnectSocket, isSocketConnected } from '../../lib/socketClient';
 import { startTracking, stopTracking } from '../../services/LocationService';
@@ -60,6 +61,24 @@ export const StopListScreen = () => {
   const { accessToken } = useAuth();
   const navigation = useNavigation<StopListNavProp>();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pendingSyncStopIds, setPendingSyncStopIds] = useState<Set<string>>(new Set());
+
+  // Tải danh sách các điểm dừng đang có tác vụ chờ đồng bộ ngoại tuyến
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      getQueue().then((queue) => {
+        if (!isMounted) return;
+        const ids = new Set(
+          queue.filter((a) => a.status === 'PENDING').map((a) => a.stopId),
+        );
+        setPendingSyncStopIds(ids);
+      });
+      return () => {
+        isMounted = false;
+      };
+    }, []),
+  );
 
   // ─── Task 9.2: Kết nối Socket.io + GPS khi route IN_PROGRESS ─────────────────
   useEffect(() => {
@@ -383,20 +402,27 @@ export const StopListScreen = () => {
                   </View>
 
                   {/* Status Badge (Icon + Text) */}
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      {
-                        backgroundColor: badge.bgColor,
-                        borderColor: badge.borderColor,
-                      },
-                    ]}
-                  >
-                    {badge.icon}
-                    <Text style={[styles.statusBadgeText, { color: badge.color }]}>
-                      {badge.label}
-                    </Text>
-                  </View>
+                  {pendingSyncStopIds.has(item.id) ? (
+                    <View style={styles.pendingSyncBadge}>
+                      <RefreshCw color="#D97706" size={11} style={{ marginRight: 4 }} />
+                      <Text style={styles.pendingSyncText}>Chờ đồng bộ</Text>
+                    </View>
+                  ) : (
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        {
+                          backgroundColor: badge.bgColor,
+                          borderColor: badge.borderColor,
+                        },
+                      ]}
+                    >
+                      {badge.icon}
+                      <Text style={[styles.statusBadgeText, { color: badge.color }]}>
+                        {badge.label}
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 {/* ── Customer Info ── */}
@@ -626,6 +652,21 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 11,
     fontWeight: '600',
+  },
+  pendingSyncBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  pendingSyncText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#D97706',
   },
   cardBody: {
     padding: SIZES.padding_md,

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MapPin, Phone, MessageCircle, ArrowLeft, Package, Wallet, Navigation, CheckCircle2, XCircle } from 'lucide-react-native';
-import { CompositeNavigationProp, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { MapPin, Phone, MessageCircle, ArrowLeft, Package, Wallet, Navigation, CheckCircle2, XCircle, RotateCcw } from 'lucide-react-native';
+import { CompositeNavigationProp, useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
@@ -14,6 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { markStopArrivedApi, ApiError } from '../../lib/api';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 import { MainTabParamList } from '../../navigation/MainTabNavigator';
+import { getQueue } from '../../lib/offlineQueue';
 
 type StopDetailNavProp = CompositeNavigationProp<
   NativeStackNavigationProp<TaskStackParamList, 'StopDetail'>,
@@ -27,8 +28,23 @@ export const StopDetailScreen = () => {
   const route = useRoute<RouteProp<TaskStackParamList, 'StopDetail'>>();
   
   const [isArriving, setIsArriving] = useState(false);
+  const [isPendingSync, setIsPendingSync] = useState(false);
   
   const stopId = route.params.stopId;
+
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      getQueue().then((queue) => {
+        if (!isMounted) return;
+        const exists = queue.some((a) => a.stopId === stopId && a.status === 'PENDING');
+        setIsPendingSync(exists);
+      });
+      return () => {
+        isMounted = false;
+      };
+    }, [stopId]),
+  );
   const stop = stops.find(s => s.id === stopId);
 
   if (!stop) {
@@ -232,7 +248,16 @@ export const StopDetailScreen = () => {
 
       {/* Action Buttons Footer */}
       <View style={styles.footer}>
-        {isTerminal ? (
+        {isPendingSync ? (
+          <View style={styles.terminalContainer}>
+            <View style={[styles.terminalBanner, { backgroundColor: '#FEF3C7', borderColor: '#FCD34D' }]}>
+              <RotateCcw color="#D97706" size={18} />
+              <Text style={[styles.terminalText, { color: '#B45309' }]}>
+                Đơn hàng đang chờ đồng bộ tự động lên máy chủ
+              </Text>
+            </View>
+          </View>
+        ) : isTerminal ? (
           <View style={styles.terminalContainer}>
             {stop.status === 'COMPLETED' ? (
               <View style={[styles.terminalBanner, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>

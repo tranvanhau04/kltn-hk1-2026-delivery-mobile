@@ -31,6 +31,8 @@ import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { failStopApi, isApiError } from '../../lib/api';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
+import { compressImageUnder1MB } from '../../lib/imageCompressor';
+import { enqueue, persistPhotoForOffline } from '../../lib/offlineQueue';
 
 interface FailureOption {
   label: string;
@@ -124,11 +126,16 @@ export const DeliveryFailureScreen = () => {
       }
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
-        quality: 0.6,
+        quality: 0.8,
         allowsEditing: false,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setPhotoUri(result.assets[0].uri);
+        try {
+          const compressed = await compressImageUnder1MB(result.assets[0].uri);
+          setPhotoUri(compressed);
+        } catch {
+          setPhotoUri(result.assets[0].uri);
+        }
       }
     } catch {
       Alert.alert('Lỗi', 'Không thể khởi động camera.');
@@ -144,11 +151,16 @@ export const DeliveryFailureScreen = () => {
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        quality: 0.6,
+        quality: 0.8,
         allowsEditing: false,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setPhotoUri(result.assets[0].uri);
+        try {
+          const compressed = await compressImageUnder1MB(result.assets[0].uri);
+          setPhotoUri(compressed);
+        } catch {
+          setPhotoUri(result.assets[0].uri);
+        }
       }
     } catch {
       Alert.alert('Lỗi', 'Không thể mở thư viện ảnh.');
@@ -250,8 +262,34 @@ export const DeliveryFailureScreen = () => {
         }
         Alert.alert('Lỗi gửi báo cáo', err.message);
       } else {
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        Alert.alert('Lỗi kết nối', `Không thể kết nối đến máy chủ (${errorMsg}). Vui lòng kiểm tra lại mạng.`);
+        // ── Lỗi kết nối / mất mạng → Lưu ngoại tuyến ──
+        try {
+          const persistentUri = photoUri ? await persistPhotoForOffline(photoUri) : undefined;
+          await enqueue({
+            type: 'FAIL_STOP',
+            stopId: stop.id,
+            orderCode: stop.order.code,
+            payload: {
+              action: selectedOption!.action,
+              failureReason: reasonText,
+              rescheduledDate: selectedOption!.action === 'RESCHEDULED' ? rescheduledDate : undefined,
+              photoUri: persistentUri,
+            },
+          });
+          Alert.alert(
+            'Đã lưu ngoại tuyến 📦',
+            `Không có kết nối mạng. Báo cáo giao hàng cho đơn ${stop.order.code} đã được lưu trên máy và sẽ tự động đồng bộ khi có Internet.`,
+            [
+              {
+                text: 'Đồng ý',
+                onPress: () => navigation.navigate('StopList'),
+              },
+            ],
+          );
+        } catch (offlineErr) {
+          const msg = offlineErr instanceof Error ? offlineErr.message : String(offlineErr);
+          Alert.alert('Lỗi lưu ngoại tuyến', `Không thể lưu dữ liệu ngoại tuyến: ${msg}`);
+        }
       }
     } finally {
       setIsSubmitting(false);

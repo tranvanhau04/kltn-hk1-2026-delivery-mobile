@@ -28,6 +28,9 @@ import {
   getQueue,
   dequeue,
   updateQueueItemError,
+  deleteOfflinePhoto,
+  markPermanentlyFailed,
+  MAX_RETRIES,
   OfflineAction,
 } from '../../lib/offlineQueue';
 import {
@@ -59,7 +62,7 @@ export const HistorySyncScreen = () => {
   // Reload queue whenever screen gains focus
   useFocusEffect(
     useCallback(() => {
-      void loadQueue();
+      loadQueue().catch(() => {});
     }, [loadQueue]),
   );
 
@@ -135,13 +138,31 @@ export const HistorySyncScreen = () => {
             console.warn('[HistorySyncScreen] Unknown offline action type:', action.type);
         }
 
-        // Successfully synced -> remove from queue
+        // Successfully synced -> remove from queue and delete photo
         await dequeue(action.id);
+        if (action.payload?.photoUri) {
+          await deleteOfflinePhoto(action.payload.photoUri);
+        }
         successCount++;
       } catch (err) {
+        if (isApiError(err)) {
+          if (err.status === 409 || err.status === 400 || err.status === 404) {
+            // Lỗi logic (đã xử lý trước đó, sai dữ liệu) -> dequeue và xóa ảnh
+            await dequeue(action.id);
+            if (action.payload?.photoUri) {
+              await deleteOfflinePhoto(action.payload.photoUri);
+            }
+            successCount++;
+            continue;
+          }
+        }
+
         failureCount++;
         const errorMsg = isApiError(err) ? err.message : 'Lỗi kết nối';
         await updateQueueItemError(action.id, errorMsg);
+        if (action.retryCount + 1 >= MAX_RETRIES) {
+          await markPermanentlyFailed(action.id);
+        }
         console.warn(`[HistorySyncScreen] Failed syncing action ${action.id}:`, err);
       }
     }
@@ -228,7 +249,7 @@ export const HistorySyncScreen = () => {
             <Text style={[TYPOGRAPHY.bodySecondary, { marginBottom: 12, fontWeight: '600' }]}>
               DANH SÁCH ĐƠN HÀNG TRONG NGÀY ({completedStops.length})
             </Text>
-          ) : null
+          ) : undefined
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
