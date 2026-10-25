@@ -11,7 +11,6 @@ import {
   persistPhotoForOffline,
   deleteOfflinePhoto,
   clearQueue,
-  MAX_RETRIES,
 } from '../lib/offlineQueue';
 
 describe('imageCompressor', () => {

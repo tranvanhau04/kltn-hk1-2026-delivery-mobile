@@ -62,7 +62,7 @@ export const HistorySyncScreen = () => {
   // Reload queue whenever screen gains focus
   useFocusEffect(
     useCallback(() => {
-      void loadQueue();
+      loadQueue().catch(() => {});
     }, [loadQueue]),
   );
 

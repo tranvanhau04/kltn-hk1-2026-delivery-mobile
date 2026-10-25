@@ -7,7 +7,6 @@ import { ToastProvider } from './src/context/ToastContext';
 import { NetworkSyncProvider } from './src/context/NetworkSyncContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { StatusBar } from 'react-native';
-import { COLORS } from './src/theme/theme';
 
 function App(): React.JSX.Element {
   return (

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useCallback } from 'react';
 import NetInfo from '@react-native-community/netinfo';
 import { useAuth } from './AuthContext';
 import { useAppContext } from './AppContext';
@@ -36,7 +36,7 @@ export function NetworkSyncProvider({ children }: { children: React.ReactNode })
   const isSyncing = useRef(false);
   const wasDisconnected = useRef(false);
 
-  const syncQueue = async () => {
+  const syncQueue = useCallback(async () => {
     if (isSyncing.current || !token) return;
     isSyncing.current = true;
 
@@ -103,7 +103,7 @@ export function NetworkSyncProvider({ children }: { children: React.ReactNode })
     } finally {
       isSyncing.current = false;
     }
-  };
+  }, [token, refreshRoute, toast]);
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
@@ -119,21 +119,21 @@ export function NetworkSyncProvider({ children }: { children: React.ReactNode })
         wasDisconnected.current = false;
         // Chờ 2s để đường truyền ổn định
         setTimeout(() => {
-          void syncQueue();
+          syncQueue().catch(() => {});
         }, 2000);
       }
     });
 
     // Thử sync 1 lần khi app khởi động nếu có hàng chờ cũ
     const timer = setTimeout(() => {
-      void syncQueue();
+      syncQueue().catch(() => {});
     }, 3000);
 
     return () => {
       unsubscribe();
       clearTimeout(timer);
     };
-  }, [token]);
+  }, [syncQueue]);
 
   return (
     <NetworkSyncContext.Provider value={{ syncNow: syncQueue }}>
