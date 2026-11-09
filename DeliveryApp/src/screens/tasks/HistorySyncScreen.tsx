@@ -228,7 +228,7 @@ export const HistorySyncScreen = () => {
             <Text style={[TYPOGRAPHY.bodySecondary, { marginBottom: 12, fontWeight: '600' }]}>
               DANH SÁCH ĐƠN HÀNG TRONG NGÀY ({completedStops.length})
             </Text>
-          ) : null
+          ) : undefined
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>

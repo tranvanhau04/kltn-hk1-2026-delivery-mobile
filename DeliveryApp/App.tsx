@@ -7,20 +7,23 @@ import { ToastProvider } from './src/context/ToastContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { StatusBar } from 'react-native';
 import { COLORS } from './src/theme/theme';
+import { navigationRef } from './src/navigation/navigationRef';
+import { SocketNotificationHandler } from './src/components/SocketNotificationHandler';
 
 function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <AppProvider>
-          <ToastProvider>
-            <NavigationContainer>
-              <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <ToastProvider>
+        <AuthProvider>
+          <AppProvider>
+            <NavigationContainer ref={navigationRef}>
+              <StatusBar barStyle="dark-content" {...({ backgroundColor: COLORS.background } as any)} />
+              <SocketNotificationHandler />
               <RootNavigator />
             </NavigationContainer>
-          </ToastProvider>
-        </AppProvider>
-      </AuthProvider>
+          </AppProvider>
+        </AuthProvider>
+      </ToastProvider>
     </SafeAreaProvider>
   );
 }

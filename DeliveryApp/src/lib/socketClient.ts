@@ -57,9 +57,27 @@ export interface EmitLocationPayload {
   batteryLevel?: number;
 }
 
+export interface NewRouteAssignedPayload {
+  routeId: string;
+  routeCode: string;
+  driverId: string;
+  stopCount: number;
+  totalDistanceKm?: number;
+  totalEstimatedTimeMin?: number;
+  message: string;
+  assignedAt: string;
+}
+
+export type RouteAssignedCallback = (payload: NewRouteAssignedPayload) => void;
+const routeAssignedListeners = new Set<RouteAssignedCallback>();
+
 // ─── Singleton socket instance ────────────────────────────────────────────────
 
 let socket: Socket | null = null;
+
+export function getSocket(): Socket | null {
+  return socket;
+}
 
 /**
  * Kết nối Socket.io tới backend.
@@ -109,6 +127,41 @@ export function connectSocket(token: string): void {
   socket.on('connect_error', (err: Error) => {
     console.warn(`[SocketClient] connect_error: ${err.message}`);
   });
+
+  // Re-attach persistent listeners with safe error handling
+  routeAssignedListeners.forEach((cb) => {
+    socket?.on('server:new_route_assigned', (data) => {
+      try {
+        cb(data);
+      } catch (err) {
+        console.error('[SocketClient] Unhandled error in route listener:', err);
+      }
+    });
+  });
+}
+
+/**
+ * Đăng ký lắng nghe sự kiện 'server:new_route_assigned' khi điều phối viên phân công tuyến mới.
+ * Tự động gắn lại listener khi socket kết nối lại. Bọc try-catch an toàn tránh crash app.
+ * @returns Hàm unsubscribe để dọn dẹp khi unmount.
+ */
+export function onNewRouteAssigned(callback: RouteAssignedCallback): () => void {
+  const safeCallback: RouteAssignedCallback = (payload) => {
+    try {
+      callback(payload);
+    } catch (err) {
+      console.error('[SocketClient] Error in onNewRouteAssigned callback:', err);
+    }
+  };
+
+  routeAssignedListeners.add(safeCallback);
+  if (socket) {
+    socket.on('server:new_route_assigned', safeCallback);
+  }
+  return () => {
+    routeAssignedListeners.delete(safeCallback);
+    socket?.off('server:new_route_assigned', safeCallback);
+  };
 }
 
 /**

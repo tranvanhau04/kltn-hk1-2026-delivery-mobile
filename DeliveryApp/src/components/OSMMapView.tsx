@@ -27,7 +27,7 @@ export const OSMMapView: React.FC<OSMMapViewProps> = ({
   targetCoord,
   isNavigating
 }) => {
-  const webViewRef = useRef<WebView>(null);
+  const webViewRef = useRef<any>(null);
   const [isReady, setIsReady] = useState(false);
 
   // We only generate the HTML shell ONCE to avoid flashing.

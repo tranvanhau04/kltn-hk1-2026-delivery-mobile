@@ -87,8 +87,7 @@ export const StopListScreen = () => {
     // 3. Cleanup khi component unmount hoặc route thay đổi (không còn IN_PROGRESS)
     return () => {
       stopTracking();
-      disconnectSocket();
-      console.log('[StopListScreen] GPS tracking and socket disconnected (cleanup).');
+      console.log('[StopListScreen] GPS tracking stopped (cleanup).');
     };
   }, [route?.status, route?.id, accessToken]);
 

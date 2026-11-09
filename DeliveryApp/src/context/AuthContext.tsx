@@ -161,17 +161,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user || !accessToken || !driverProfile) return;
 
     const currentStatus = driverProfile.currentShiftStatus;
+    if (currentStatus === 'BUSY' || currentStatus === 'ON_DUTY') {
+      throw new Error('Bạn đang trong ca giao hàng, không thể thay đổi trạng thái ca.');
+    }
+
     const newStatus = currentStatus === 'ONLINE_READY' ? 'OFFLINE' : 'ONLINE_READY';
 
-    // Optimistic UI update
-    setDriverProfile(prev => prev ? { ...prev, currentShiftStatus: newStatus } : null);
-
+    // Option A: Update state ONLY AFTER API returns success to avoid UI desync
     try {
       await updateShiftStatusApi(user.id, newStatus, accessToken);
+      setDriverProfile(prev => prev ? { ...prev, currentShiftStatus: newStatus } : null);
     } catch (err) {
-      // Rollback on failure
-      setDriverProfile(prev => prev ? { ...prev, currentShiftStatus: currentStatus } : null);
-      throw err; // Re-throw so UI can show Alert
+      console.error('[AuthContext] updateShiftStatusApi failed, state unchanged:', err);
+      throw err; // Re-throw so UI can show error Alert/Toast
     }
   }, [user, accessToken, driverProfile]);
 
