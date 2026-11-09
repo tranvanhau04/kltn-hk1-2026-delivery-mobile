@@ -48,7 +48,7 @@ import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 import { MainTabParamList } from '../../navigation/MainTabNavigator';
 import { getQueue } from '../../lib/offlineQueue';
 // Task 9.2: Realtime tracking
-import { connectSocket, disconnectSocket, isSocketConnected } from '../../lib/socketClient';
+import { connectSocket, isSocketConnected } from '../../lib/socketClient';
 import { startTracking, stopTracking } from '../../services/LocationService';
 
 type StopListNavProp = CompositeNavigationProp<
