@@ -154,6 +154,8 @@ export const EndShiftModal = () => {
   };
 
   const handleConfirm = () => {
+    if (isSubmitting) return;
+
     if (!hasEnteredCod) {
       toast.warning('Chưa nhập số tiền', 'Vui lòng nhập số tiền COD thực tế bạn nộp về két thủ quỹ.');
       Alert.alert('Chưa nhập số tiền', 'Vui lòng nhập số tiền COD thực tế bạn nộp về két thủ quỹ.');
@@ -161,21 +163,22 @@ export const EndShiftModal = () => {
     }
 
     if (codDifference !== 0) {
-      const diffType = codDifference > 0 ? 'THIẾU' : 'DƯ';
-      Alert.alert(
-        'Xác nhận chênh lệch COD',
-        `Số tiền thực nộp đang ${diffType} ${formatVnd(codDifference)} so với tiền hệ thống ghi nhận (${formatVnd(systemCod)}).\n\nBạn có chắc chắn muốn xác nhận đóng ca với số tiền này không?`,
-        [
-          { text: 'Kiểm tra lại', style: 'cancel' },
-          {
-            text: 'Xác nhận nộp',
-            style: 'destructive',
-            onPress: () => {
-              void executeCloseShift();
-            },
+      const isDeficit = codDifference > 0;
+      const title = isDeficit ? '⚠️ CẢNH BÁO NỘP THIẾU TIỀN COD' : 'Xác nhận chênh lệch COD (Dư tiền)';
+      const message = isDeficit
+        ? `Số tiền thực nộp đang THIẾU ${formatVnd(codDifference)} so với tiền hệ thống ghi nhận (${formatVnd(systemCod)}).\n\nBạn có chắc chắn muốn nộp thiếu và gửi yêu cầu đóng ca không? Vui lòng ghi chú giải trình rõ ràng cho thủ quỹ.`
+        : `Số tiền thực nộp đang DƯ ${formatVnd(Math.abs(codDifference))} so với tiền hệ thống ghi nhận (${formatVnd(systemCod)}).\n\nBạn có chắc chắn muốn xác nhận đóng ca với số tiền này không?`;
+
+      Alert.alert(title, message, [
+        { text: 'Kiểm tra lại', style: 'cancel' },
+        {
+          text: isDeficit ? 'Xác nhận nộp thiếu' : 'Xác nhận nộp dư',
+          style: isDeficit ? 'destructive' : 'default',
+          onPress: () => {
+            void executeCloseShift();
           },
-        ],
-      );
+        },
+      ]);
     } else {
       void executeCloseShift();
     }
@@ -227,7 +230,15 @@ export const EndShiftModal = () => {
               Tiền mặt thực tế nộp về két thủ quỹ <Text style={{ color: COLORS.danger }}>*</Text>
             </Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                hasEnteredCod &&
+                  (codDifference > 0
+                    ? styles.inputMissing
+                    : codDifference === 0
+                    ? styles.inputMatch
+                    : styles.inputSurplus),
+              ]}
               keyboardType="numeric"
               placeholder="Nhập số tiền thực nộp (VND)"
               placeholderTextColor={COLORS.textSecondary}
@@ -257,8 +268,8 @@ export const EndShiftModal = () => {
                 ) : codDifference > 0 ? (
                   <>
                     <AlertCircle color={COLORS.danger} size={18} style={{ marginRight: 8 }} />
-                    <Text style={[styles.diffText, { color: COLORS.danger }]}>
-                      Thiếu {formatVnd(codDifference)} so với hệ thống
+                    <Text style={[styles.diffText, { color: COLORS.danger, fontWeight: 'bold' }]}>
+                      Cảnh báo: Thiếu {formatVnd(codDifference)} so với hệ thống
                     </Text>
                   </>
                 ) : (
@@ -269,6 +280,21 @@ export const EndShiftModal = () => {
                     </Text>
                   </>
                 )}
+              </View>
+            )}
+
+            {/* Red Warning Card when driver enters deficient COD */}
+            {hasEnteredCod && codDifference > 0 && (
+              <View style={styles.deficitBanner}>
+                <AlertTriangle color={COLORS.danger} size={20} style={{ marginRight: 10, marginTop: 2 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.deficitTitle}>
+                    CẢNH BÁO NỘP THIẾU TIỀN COD
+                  </Text>
+                  <Text style={styles.deficitBody}>
+                    Hệ thống yêu cầu nộp <Text style={{ fontWeight: 'bold' }}>{formatVnd(systemCod)}</Text>, bạn nhập <Text style={{ fontWeight: 'bold' }}>{formatVnd(numericSubmitted)}</Text>. Chênh lệch thiếu <Text style={{ fontWeight: 'bold', color: COLORS.danger }}>{formatVnd(codDifference)}</Text>. Vui lòng ghi rõ lý do chênh lệch vào ô giải trình bên dưới.
+                  </Text>
+                </View>
               </View>
             )}
 
@@ -375,6 +401,41 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     backgroundColor: COLORS.background,
     color: COLORS.textPrimary,
+  },
+  inputMissing: {
+    borderColor: COLORS.danger,
+    borderWidth: 2,
+    backgroundColor: '#FEF2F2',
+  },
+  inputMatch: {
+    borderColor: COLORS.success,
+    borderWidth: 1.5,
+    backgroundColor: '#F0FDF4',
+  },
+  inputSurplus: {
+    borderColor: '#3B82F6',
+    borderWidth: 1.5,
+    backgroundColor: '#EFF6FF',
+  },
+  deficitBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1.5,
+    borderColor: '#F87171',
+    borderRadius: SIZES.radius_sm,
+    padding: 12,
+    marginTop: 12,
+  },
+  deficitTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#991B1B',
+    marginBottom: 4,
+  },
+  deficitBody: {
+    fontSize: 12,
+    color: '#7F1D1D',
+    lineHeight: 18,
   },
   diffBadge: {
     flexDirection: 'row',

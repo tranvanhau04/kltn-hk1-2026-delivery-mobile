@@ -23,13 +23,16 @@ import {
   Route as RouteIcon,
   Locate,
   Phone,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { MainTabParamList } from '../../navigation/MainTabNavigator';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { postDriverLocation } from '../../lib/api';
+import { postDriverLocation, markStopArrivedApi } from '../../lib/api';
 
 // Driver ID used for GPS tracking
 const ACTIVE_DRIVER_ID = 'u0000000-0000-0000-0000-000000000101';
@@ -59,8 +62,11 @@ const PulsingDot = () => {
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export const TrackScreen = () => {
-  const { route, stops, polylineCoords } = useAppContext();
+  const navigation = useNavigation<any>();
+  const { route, stops, polylineCoords, markStopArrived, refreshRoute } = useAppContext();
+  const { token } = useAuth();
   const toast = useToast();
+  const [isArriving, setIsArriving] = useState(false);
   const [cachedPings, setCachedPings] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncSuccess, setLastSyncSuccess] = useState<boolean | null>(null);
@@ -188,6 +194,34 @@ export const TrackScreen = () => {
     toast.info('Bắt đầu dẫn đường', `Đang dẫn đường tới ${activeStop?.order?.receiver_name || 'điểm giao'}`);
   };
 
+  const navigateToTaskScreen = (screenName: 'StopDetail' | 'PODCompletion' | 'DeliveryFailure', stopId: string) => {
+    navigation.navigate('Tasks', {
+      screen: screenName,
+      params: { stopId },
+    });
+  };
+
+  const handleArrive = async () => {
+    if (!activeStop) return;
+    setIsArriving(true);
+    try {
+      if (token) {
+        await markStopArrivedApi(activeStop.id, token);
+      }
+      markStopArrived(activeStop.id);
+      await refreshRoute();
+      toast.success('Đã đến nơi', `Đã ghi nhận đến điểm giao ${activeStop.order.receiver_name}`);
+      setIsNavigating(false);
+      navigateToTaskScreen('StopDetail', activeStop.id);
+    } catch {
+      markStopArrived(activeStop.id);
+      setIsNavigating(false);
+      navigateToTaskScreen('StopDetail', activeStop.id);
+    } finally {
+      setIsArriving(false);
+    }
+  };
+
   const handleSync = async () => {
     setIsSyncing(true);
     try {
@@ -261,20 +295,47 @@ export const TrackScreen = () => {
             ) : null}
 
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
-              <TouchableOpacity
-                style={[COMMON_STYLES.primaryButton, { flex: 1, backgroundColor: COLORS.danger }]}
-                onPress={() => setIsNavigating(false)}
-              >
-                <Text style={TYPOGRAPHY.buttonText}>Kết thúc</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[COMMON_STYLES.primaryButton, { flex: 1, backgroundColor: COLORS.success }]}
-                onPress={() => {
-                  setIsNavigating(false);
-                }}
-              >
-                <Text style={TYPOGRAPHY.buttonText}>Đã đến nơi</Text>
-              </TouchableOpacity>
+              {activeStop?.status === 'ARRIVED' ? (
+                <>
+                  <TouchableOpacity
+                    style={[COMMON_STYLES.primaryButton, { flex: 1, backgroundColor: COLORS.success, gap: 6 }]}
+                    onPress={() => {
+                      setIsNavigating(false);
+                      navigateToTaskScreen('PODCompletion', activeStop.id);
+                    }}
+                  >
+                    <CheckCircle2 color="#fff" size={16} />
+                    <Text style={TYPOGRAPHY.buttonText}>Giao thành công</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[COMMON_STYLES.primaryButton, { flex: 1, backgroundColor: COLORS.danger, gap: 6 }]}
+                    onPress={() => {
+                      setIsNavigating(false);
+                      navigateToTaskScreen('DeliveryFailure', activeStop.id);
+                    }}
+                  >
+                    <XCircle color="#fff" size={16} />
+                    <Text style={TYPOGRAPHY.buttonText}>Báo thất bại</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={[COMMON_STYLES.primaryButton, { flex: 1, backgroundColor: '#6B7280' }]}
+                    onPress={() => setIsNavigating(false)}
+                  >
+                    <Text style={TYPOGRAPHY.buttonText}>Thoát</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[COMMON_STYLES.primaryButton, { flex: 1, backgroundColor: COLORS.success }]}
+                    onPress={handleArrive}
+                    disabled={isArriving}
+                  >
+                    <Text style={TYPOGRAPHY.buttonText}>{isArriving ? 'Đang gửi...' : 'Đã đến nơi'}</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
         </SafeAreaView>
@@ -414,14 +475,64 @@ export const TrackScreen = () => {
               </View>
             )}
 
-            <TouchableOpacity
-              style={[COMMON_STYLES.primaryButton, { marginTop: 14 }]}
-              onPress={handleNavigate}
-              activeOpacity={0.8}
-            >
-              <Navigation color="#fff" size={18} style={{ marginRight: 8 }} />
-              <Text style={TYPOGRAPHY.buttonText}>Bắt đầu di chuyển</Text>
-            </TouchableOpacity>
+            {activeStop.status === 'ARRIVED' ? (
+              <View style={{ marginTop: 14, gap: 10 }}>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity
+                    style={[COMMON_STYLES.primaryButton, { flex: 1, backgroundColor: COLORS.success, gap: 6 }]}
+                    onPress={() => navigateToTaskScreen('PODCompletion', activeStop.id)}
+                  >
+                    <CheckCircle2 color="#fff" size={16} />
+                    <Text style={TYPOGRAPHY.buttonText}>Giao thành công</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[COMMON_STYLES.primaryButton, { flex: 1, backgroundColor: COLORS.danger, gap: 6 }]}
+                    onPress={() => navigateToTaskScreen('DeliveryFailure', activeStop.id)}
+                  >
+                    <XCircle color="#fff" size={16} />
+                    <Text style={TYPOGRAPHY.buttonText}>Báo thất bại</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  style={[COMMON_STYLES.primaryButton, { backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: COLORS.border }]}
+                  onPress={() => navigateToTaskScreen('StopDetail', activeStop.id)}
+                >
+                  <Text style={[TYPOGRAPHY.buttonText, { color: COLORS.textPrimary }]}>Xem chi tiết đơn hàng</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ marginTop: 14, gap: 10 }}>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity
+                    style={[COMMON_STYLES.primaryButton, { flex: 1 }]}
+                    onPress={handleNavigate}
+                    activeOpacity={0.8}
+                  >
+                    <Navigation color="#fff" size={18} style={{ marginRight: 8 }} />
+                    <Text style={TYPOGRAPHY.buttonText}>Di chuyển</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[COMMON_STYLES.primaryButton, { flex: 1, backgroundColor: COLORS.success }]}
+                    onPress={handleArrive}
+                    disabled={isArriving}
+                    activeOpacity={0.8}
+                  >
+                    <MapPin color="#fff" size={18} style={{ marginRight: 8 }} />
+                    <Text style={TYPOGRAPHY.buttonText}>{isArriving ? 'Đang gửi...' : 'Đã đến nơi'}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  style={[COMMON_STYLES.primaryButton, { backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: COLORS.border }]}
+                  onPress={() => navigateToTaskScreen('StopDetail', activeStop.id)}
+                >
+                  <Text style={[TYPOGRAPHY.buttonText, { color: COLORS.textPrimary }]}>Xem chi tiết đơn hàng</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         ) : (
           <View style={[COMMON_STYLES.card, styles.allDoneCard]}>

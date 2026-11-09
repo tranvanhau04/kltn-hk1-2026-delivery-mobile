@@ -20,8 +20,8 @@
 import Constants from 'expo-constants';
 
 // ─── ⚙️ Override (set to null for auto-detection) ─────────────────────────────
-const OVERRIDE_API_HOST: string | null = null;
-// Example:  const OVERRIDE_API_HOST = '192.168.1.15';
+const OVERRIDE_API_HOST: string | null = '192.168.1.30';
+// Dev machine Wi-Fi IP: 192.168.1.30
 
 // ─── Backend port ──────────────────────────────────────────────────────────────
 const API_PORT = 3001;

@@ -31,6 +31,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { submitStopPodApi, isApiError } from '../../lib/api';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
+import { compressImageUnder1MB } from '../../lib/imageCompressor';
+import { enqueue, persistPhotoForOffline } from '../../lib/offlineQueue';
 
 export const PODCompletionScreen = () => {
   const { stops, refreshRoute } = useAppContext();
@@ -77,12 +79,17 @@ export const PODCompletionScreen = () => {
 
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
-        quality: 0.7,
+        quality: 0.8,
         allowsEditing: false,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setPhotoUri(result.assets[0].uri);
+        try {
+          const compressed = await compressImageUnder1MB(result.assets[0].uri);
+          setPhotoUri(compressed);
+        } catch {
+          setPhotoUri(result.assets[0].uri);
+        }
       }
     } catch {
       Alert.alert('Lỗi Camera', 'Không thể khởi động camera. Vui lòng thử lại.');
@@ -104,12 +111,17 @@ export const PODCompletionScreen = () => {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        quality: 0.7,
+        quality: 0.8,
         allowsEditing: false,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setPhotoUri(result.assets[0].uri);
+        try {
+          const compressed = await compressImageUnder1MB(result.assets[0].uri);
+          setPhotoUri(compressed);
+        } catch {
+          setPhotoUri(result.assets[0].uri);
+        }
       }
     } catch {
       Alert.alert('Lỗi Thư viện', 'Không thể mở thư viện ảnh. Vui lòng thử lại.');
@@ -184,8 +196,37 @@ export const PODCompletionScreen = () => {
         }
         Alert.alert('Lỗi gửi POD', err.message);
       } else {
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        Alert.alert('Lỗi kết nối', `Không thể gửi dữ liệu lên máy chủ (${errorMsg}). Vui lòng kiểm tra lại mạng.`);
+        // ── Lỗi kết nối / mất mạng → Lưu ngoại tuyến với persistent photo ──
+        try {
+          const persistentUri = await persistPhotoForOffline(photoUri);
+          await enqueue({
+            type: 'SUBMIT_POD',
+            stopId: stop.id,
+            orderCode: stop.order.code,
+            payload: {
+              photoUri: persistentUri,
+              codCollected: finalAmount,
+              notes,
+            },
+          });
+          toast.info(
+            'Đã lưu ngoại tuyến',
+            'Dữ liệu POD sẽ tự động đẩy lên máy chủ khi có kết nối mạng.',
+          );
+          Alert.alert(
+            'Đã lưu ngoại tuyến 📦',
+            `Không có kết nối mạng. Minh chứng giao hàng cho đơn ${stop.order.code} đã được lưu trên máy và sẽ tự động đồng bộ khi có Internet.`,
+            [
+              {
+                text: 'Đồng ý',
+                onPress: () => navigation.navigate('StopList'),
+              },
+            ],
+          );
+        } catch (offlineErr) {
+          const msg = offlineErr instanceof Error ? offlineErr.message : String(offlineErr);
+          Alert.alert('Lỗi lưu ngoại tuyến', `Không thể lưu dữ liệu ngoại tuyến: ${msg}`);
+        }
       }
     } finally {
       setIsSubmitting(false);

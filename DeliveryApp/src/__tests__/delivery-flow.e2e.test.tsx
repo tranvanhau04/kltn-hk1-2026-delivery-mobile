@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StopDetailScreen } from '../screens/tasks/StopDetailScreen';
 import { PODCompletionScreen } from '../screens/tasks/PODCompletionScreen';
 import { DeliveryFailureScreen } from '../screens/tasks/DeliveryFailureScreen';
+import { ToastProvider } from '../context/ToastContext';
 import * as api from '../lib/api';
 
 // --- MOCK SETUP ---
@@ -161,18 +162,20 @@ describe('Delivery Lifecycle E2E Test (Tasks 8.2 & 8.3)', () => {
     });
 
     const AppTree = (
-      <NavigationContainer>
-        <Stack.Navigator>
-          <Stack.Screen name="StopDetail" component={StopDetailScreen} initialParams={{ stopId: mockStopId }} />
-          <Stack.Screen name="PODCompletion" component={PODCompletionScreen} />
-          <Stack.Screen name="StopList" component={DummyStopList} />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <ToastProvider>
+        <NavigationContainer>
+          <Stack.Navigator>
+            <Stack.Screen name="StopDetail" component={StopDetailScreen} initialParams={{ stopId: mockStopId }} />
+            <Stack.Screen name="PODCompletion" component={PODCompletionScreen} />
+            <Stack.Screen name="StopList" component={DummyStopList} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </ToastProvider>
     );
 
     let rerender: any;
     try {
-      const result: any = render(AppTree);
+      const result: any = await render(AppTree);
       rerender = result.rerender;
     } catch (e) {
       console.error('Render failed:', e);
@@ -204,9 +207,9 @@ describe('Delivery Lifecycle E2E Test (Tasks 8.2 & 8.3)', () => {
     console.log('3. Kiểm tra Trạng thái 2 xuất hiện');
     try {
       if (rerender) {
-        rerender(AppTree); // Trigger re-render so it picks up the updated mockStops
+        await rerender(AppTree); // Trigger re-render so it picks up the updated mockStops
       } else {
-        render(AppTree);
+        await render(AppTree);
       }
     } catch (e) {
       console.log('Re-render error:', e);
@@ -256,14 +259,16 @@ describe('Delivery Lifecycle E2E Test (Tasks 8.2 & 8.3)', () => {
 
     mockStops = [{ ...mockStop, arrived_at: new Date().toISOString(), status: 'ARRIVED' }];
     
-    render(
-      <NavigationContainer>
-        <Stack.Navigator>
-          <Stack.Screen name="StopDetail" component={StopDetailScreen} initialParams={{ stopId: mockStopId }} />
-          <Stack.Screen name="DeliveryFailure" component={DeliveryFailureScreen} />
-          <Stack.Screen name="StopList" component={DummyStopList} />
-        </Stack.Navigator>
-      </NavigationContainer>
+    await render(
+      <ToastProvider>
+        <NavigationContainer>
+          <Stack.Navigator>
+            <Stack.Screen name="StopDetail" component={StopDetailScreen} initialParams={{ stopId: mockStopId }} />
+            <Stack.Screen name="DeliveryFailure" component={DeliveryFailureScreen} />
+            <Stack.Screen name="StopList" component={DummyStopList} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </ToastProvider>
     );
 
     console.log('1. Khởi tạo Trạng thái 2 & Bấm "Báo thất bại"');
