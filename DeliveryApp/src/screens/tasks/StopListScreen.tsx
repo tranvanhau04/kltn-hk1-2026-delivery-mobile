@@ -48,7 +48,7 @@ import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 import { MainTabParamList } from '../../navigation/MainTabNavigator';
 import { getQueue } from '../../lib/offlineQueue';
 // Task 9.2: Realtime tracking
-import { connectSocket, disconnectSocket, isSocketConnected } from '../../lib/socketClient';
+import { connectSocket, isSocketConnected } from '../../lib/socketClient';
 import { startTracking, stopTracking } from '../../services/LocationService';
 
 type StopListNavProp = CompositeNavigationProp<
@@ -106,8 +106,7 @@ export const StopListScreen = () => {
     // 3. Cleanup khi component unmount hoặc route thay đổi (không còn IN_PROGRESS)
     return () => {
       stopTracking();
-      disconnectSocket();
-      console.log('[StopListScreen] GPS tracking and socket disconnected (cleanup).');
+      console.log('[StopListScreen] GPS tracking stopped (cleanup).');
     };
   }, [route?.status, route?.id, accessToken]);
 

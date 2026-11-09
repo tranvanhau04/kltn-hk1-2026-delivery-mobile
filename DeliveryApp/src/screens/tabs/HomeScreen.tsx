@@ -62,8 +62,9 @@ export const HomeScreen = () => {
   const { route, stops, isLoadingRoute } = useAppContext();
   const toast = useToast();
 
-  const isOnline = driverProfile?.currentShiftStatus === 'ONLINE_READY';
   const isBusy = driverProfile?.currentShiftStatus === 'BUSY' || driverProfile?.currentShiftStatus === 'ON_DUTY';
+  const isReady = driverProfile?.currentShiftStatus === 'ONLINE_READY';
+  const isShiftOpen = isReady || isBusy;
 
   // ─── Compute summary stats from real stops data ───────────────────────────
   const stats = useMemo(() => {
@@ -78,16 +79,20 @@ export const HomeScreen = () => {
   // ─── Handle shift toggle ─────────────────────────────────────────────────
   const handleToggleShift = async () => {
     if (isBusy) {
-      toast.warning('Không thể tắt ca', 'Bạn đang có đơn hàng đang xử lý. Hoàn tất giao hàng trước khi tắt ca.');
+      toast.warning(
+        'Không thể tắt ca',
+        'Bạn đang có đơn hàng đang xử lý. Hoàn tất giao hàng trước khi tắt ca.',
+      );
       return;
     }
 
-    if (isOnline) {
+    if (isReady) {
       // Khi đang mở ca và muốn tắt -> Mở modal Chốt ca & Đối soát COD
       navigation.navigate('EndShiftModal');
       return;
     }
 
+    // Khi ca đang tắt (OFFLINE) và muốn bật lên (ONLINE_READY)
     try {
       await toggleShiftStatus();
       toast.success('Bắt đầu ca làm việc', 'Trạng thái: Sẵn sàng nhận đơn giao hàng.');
@@ -154,10 +159,25 @@ export const HomeScreen = () => {
             )}
           </View>
           <View style={styles.headerRight}>
-            <View style={[styles.statusBadge, isOnline ? styles.badgeOnline : styles.badgeOffline]}>
-              <View style={[styles.statusDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
-              <Text style={[styles.statusText, isOnline ? styles.textOnline : styles.textOffline]}>
-                {isOnline ? 'Trực tuyến' : isBusy ? 'Đang bận' : 'Ngoại tuyến'}
+            <View
+              style={[
+                styles.statusBadge,
+                isBusy ? styles.badgeBusy : isReady ? styles.badgeOnline : styles.badgeOffline,
+              ]}
+            >
+              <View
+                style={[
+                  styles.statusDot,
+                  isBusy ? styles.dotBusy : isReady ? styles.dotOnline : styles.dotOffline,
+                ]}
+              />
+              <Text
+                style={[
+                  styles.statusText,
+                  isBusy ? styles.textBusy : isReady ? styles.textOnline : styles.textOffline,
+                ]}
+              >
+                {isBusy ? 'Đang giao hàng' : isReady ? 'Trực tuyến' : 'Ngoại tuyến'}
               </Text>
             </View>
             <TouchableOpacity
@@ -171,25 +191,46 @@ export const HomeScreen = () => {
         </View>
 
         {/* ── Shift Toggle Card ──────────────────────────────────────────── */}
-        <View style={[styles.shiftCard, isOnline ? styles.shiftCardOnline : styles.shiftCardOffline]}>
+        <View
+          style={[
+            styles.shiftCard,
+            isBusy
+              ? styles.shiftCardBusy
+              : isReady
+              ? styles.shiftCardOnline
+              : styles.shiftCardOffline,
+          ]}
+        >
           <View style={styles.shiftCardContent}>
             <View style={styles.shiftInfo}>
               <Power
-                color={isOnline ? '#10B981' : COLORS.textSecondary}
+                color={isBusy ? '#3B82F6' : isReady ? '#10B981' : COLORS.textSecondary}
                 size={28}
               />
               <View style={styles.shiftTextContainer}>
-                <Text style={[styles.shiftTitle, isOnline && styles.shiftTitleOnline]}>
-                  {isOnline ? 'CA ĐANG MỞ' : 'CA ĐANG TẮT'}
+                <Text
+                  style={[
+                    styles.shiftTitle,
+                    isBusy ? styles.shiftTitleBusy : isReady ? styles.shiftTitleOnline : null,
+                  ]}
+                >
+                  {isBusy ? 'CA ĐANG HOẠT ĐỘNG' : isReady ? 'CA ĐANG MỞ' : 'CA ĐANG TẮT'}
                 </Text>
                 <Text style={styles.shiftSubtitle}>
-                  {isOnline ? 'Sẵn sàng nhận đơn hàng' : 'Gạt để bắt đầu ca làm việc'}
+                  {isBusy
+                    ? 'Đang thực hiện tuyến giao hàng'
+                    : isReady
+                    ? 'Sẵn sàng nhận đơn giao hàng'
+                    : 'Gạt để bắt đầu ca làm việc'}
                 </Text>
               </View>
             </View>
 
             <TouchableOpacity
-              style={[styles.toggleButton, isOnline ? styles.toggleOn : styles.toggleOff]}
+              style={[
+                styles.toggleButton,
+                isBusy ? styles.toggleBusy : isReady ? styles.toggleOn : styles.toggleOff,
+              ]}
               onPress={handleToggleShift}
               activeOpacity={0.8}
               disabled={isLoadingDriver}
@@ -197,15 +238,24 @@ export const HomeScreen = () => {
               {isLoadingDriver ? (
                 <ActivityIndicator color="#FFF" size="small" />
               ) : (
-                <View style={[styles.toggleKnob, isOnline ? styles.knobOn : styles.knobOff]} />
+                <View style={[styles.toggleKnob, isShiftOpen ? styles.knobOn : styles.knobOff]} />
               )}
             </TouchableOpacity>
           </View>
 
-          {isOnline && (
+          {isShiftOpen && (
             <TouchableOpacity
               style={styles.endShiftActionBtn}
-              onPress={() => navigation.navigate('EndShiftModal')}
+              onPress={() => {
+                if (isBusy) {
+                  toast.warning(
+                    'Chưa thể chốt ca',
+                    'Bạn đang có đơn hàng trong tuyến. Vui lòng hoàn tất trước khi chốt ca.',
+                  );
+                } else {
+                  navigation.navigate('EndShiftModal');
+                }
+              }}
               activeOpacity={0.8}
             >
               <Banknote color="#B45309" size={16} style={{ marginRight: 6 }} />
@@ -253,7 +303,7 @@ export const HomeScreen = () => {
               <View style={styles.routeStat}>
                 <Route color={COLORS.primary} size={20} />
                 <Text style={styles.routeValue}>
-                  {Number(route.total_distance_km).toFixed(1)} km
+                  {Number(route.total_distance_km || 0).toFixed(1)} km
                 </Text>
                 <Text style={styles.routeLabel}>Tổng cự ly</Text>
               </View>
@@ -261,14 +311,14 @@ export const HomeScreen = () => {
               <View style={styles.routeStat}>
                 <Clock color={COLORS.primary} size={20} />
                 <Text style={styles.routeValue}>
-                  {formatTime(Number(route.total_estimated_time_min))}
+                  {formatTime(Number(route.total_estimated_time_min || 0))}
                 </Text>
                 <Text style={styles.routeLabel}>Thời gian ước tính</Text>
               </View>
               <View style={styles.routeDivider} />
               <View style={styles.routeStat}>
                 <Package color={COLORS.primary} size={20} />
-                <Text style={styles.routeValue}>{stops.length}</Text>
+                <Text style={styles.routeValue}>{stops?.length ?? 0}</Text>
                 <Text style={styles.routeLabel}>Điểm giao</Text>
               </View>
             </View>
@@ -366,6 +416,9 @@ const styles = StyleSheet.create({
   badgeOnline: {
     backgroundColor: '#D1FAE5',
   },
+  badgeBusy: {
+    backgroundColor: '#DBEAFE',
+  },
   badgeOffline: {
     backgroundColor: '#F3F4F6',
   },
@@ -378,6 +431,9 @@ const styles = StyleSheet.create({
   dotOnline: {
     backgroundColor: '#10B981',
   },
+  dotBusy: {
+    backgroundColor: '#2563EB',
+  },
   dotOffline: {
     backgroundColor: '#9CA3AF',
   },
@@ -387,6 +443,9 @@ const styles = StyleSheet.create({
   },
   textOnline: {
     color: '#065F46',
+  },
+  textBusy: {
+    color: '#1D4ED8',
   },
   textOffline: {
     color: '#6B7280',
@@ -402,6 +461,10 @@ const styles = StyleSheet.create({
   shiftCardOnline: {
     backgroundColor: '#ECFDF5',
     borderColor: '#10B981',
+  },
+  shiftCardBusy: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#3B82F6',
   },
   shiftCardOffline: {
     backgroundColor: COLORS.surface,
@@ -429,6 +492,9 @@ const styles = StyleSheet.create({
   shiftTitleOnline: {
     color: '#065F46',
   },
+  shiftTitleBusy: {
+    color: '#1D4ED8',
+  },
   shiftSubtitle: {
     fontSize: 13,
     color: COLORS.textSecondary,
@@ -445,6 +511,9 @@ const styles = StyleSheet.create({
   },
   toggleOn: {
     backgroundColor: '#10B981',
+  },
+  toggleBusy: {
+    backgroundColor: '#3B82F6',
   },
   toggleOff: {
     backgroundColor: '#D1D5DB',

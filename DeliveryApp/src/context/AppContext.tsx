@@ -38,48 +38,61 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setIsLoadingRoute(true);
     try {
       const data = await fetchDriverRoute(driverId, token || undefined);
-      if (data.success && data.route && data.stops?.length) {
-        const mappedStops: Stop[] = data.stops.map((s) => ({
-          id: s.id,
-          route_id: s.routeId,
-          order_id: s.orderId,
-          sequence_no: s.sequenceNo,
-          arrived_at: s.arrivedAt,
-          status: s.status as Stop['status'],
+      if (data && data.success && data.route) {
+        const routeData = data.route;
+        const rawStops = Array.isArray(data.stops) ? data.stops : [];
+        const mappedStops: Stop[] = rawStops.map((s, idx) => ({
+          id: s?.id || `stop-${idx}`,
+          route_id: s?.routeId || routeData.id,
+          order_id: s?.orderId || '',
+          sequence_no: typeof s?.sequenceNo === 'number' ? s.sequenceNo : idx + 1,
+          arrived_at: s?.arrivedAt || null,
+          status: (s?.status || 'PENDING') as Stop['status'],
           order: {
-            id: s.order?.id ?? s.orderId,
-            code: s.order?.code ?? '',
-            receiver_name: s.order?.receiverName ?? '',
-            receiver_phone: s.order?.receiverPhone ?? '',
-            delivery_address: s.order?.deliveryAddress ?? '',
-            lat: s.order?.lat ?? 10.8222,
-            lng: s.order?.lng ?? 106.6875,
-            cod_amount: s.order?.codAmount ?? 0,
-            weight_kg: (s.order as any)?.weightKg ?? undefined,
-            volume_m3: (s.order as any)?.volumeM3 ?? undefined,
-            status: (s.order?.status === 'DELIVERED' ? 'DELIVERED'
-              : s.order?.status === 'FAILED' ? 'FAILED'
+            id: s?.order?.id || s?.orderId || '',
+            code: s?.order?.code || `ORD-${idx + 1}`,
+            receiver_name: s?.order?.receiverName || 'Khách hàng',
+            receiver_phone: s?.order?.receiverPhone || '',
+            delivery_address: s?.order?.deliveryAddress || 'Địa chỉ giao hàng',
+            lat: Number(s?.order?.lat) || 10.8222,
+            lng: Number(s?.order?.lng) || 106.6875,
+            cod_amount: Number(s?.order?.codAmount) || 0,
+            weight_kg: Number((s?.order as any)?.weightKg) || undefined,
+            volume_m3: Number((s?.order as any)?.volumeM3) || undefined,
+            status: (s?.order?.status === 'DELIVERED' ? 'DELIVERED'
+              : s?.order?.status === 'FAILED' ? 'FAILED'
               : 'PENDING') as Stop['order']['status'],
           },
         }));
 
+        let parsedPolyline: [number, number][] = [];
+        if (Array.isArray(data.route.polyline)) {
+          parsedPolyline = data.route.polyline as [number, number][];
+        } else if (typeof data.route.polyline === 'string') {
+          try {
+            parsedPolyline = JSON.parse(data.route.polyline);
+          } catch {
+            parsedPolyline = [];
+          }
+        }
+
         const mappedRoute: Route = {
           id: data.route.id,
           driver_id: data.route.driverId,
-          route_date: data.route.routeDate,
-          total_distance_km: data.route.totalDistanceKm,
-          total_estimated_time_min: data.route.totalEstimatedTimeMin,
+          route_date: data.route.routeDate || new Date().toISOString().split('T')[0],
+          total_distance_km: Number(data.route.totalDistanceKm) || 0,
+          total_estimated_time_min: Number(data.route.totalEstimatedTimeMin) || 0,
           status: (data.route.status === 'IN_PROGRESS' ? 'IN_PROGRESS'
             : data.route.status === 'COMPLETED' ? 'COMPLETED'
             : 'ASSIGNED') as Route['status'],
-          polyline: JSON.stringify(data.route.polyline),
+          polyline: JSON.stringify(parsedPolyline),
         };
 
+        const sortedStops = [...mappedStops].sort((a, b) => a.sequence_no - b.sequence_no);
+
         setRoute(mappedRoute);
-        setStops(mappedStops);
-        if (Array.isArray(data.route.polyline)) {
-          setPolylineCoords(data.route.polyline as [number, number][]);
-        }
+        setStops(sortedStops);
+        setPolylineCoords(parsedPolyline);
       } else {
         setRoute(null);
         setStops([]);

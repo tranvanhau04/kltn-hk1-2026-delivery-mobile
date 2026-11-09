@@ -106,7 +106,7 @@ export function NetworkSyncProvider({ children }: { children: React.ReactNode })
   }, [token, refreshRoute, toast]);
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
+    const unsubscribe = NetInfo.addEventListener((state: any) => {
       const isOnline = Boolean(state.isConnected && state.isInternetReachable !== false);
 
       if (!isOnline) {
