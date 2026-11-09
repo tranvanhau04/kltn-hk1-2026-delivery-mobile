@@ -302,7 +302,7 @@ export async function fetchDriverRoute(
       return await apiFetchAuth<ApiDriverRouteResponse>(`/driver/${driverId}/route`, token);
     }
     return await apiFetch<ApiDriverRouteResponse>(`/driver/${driverId}/route`);
-  } catch (err) {
+  } catch {
     try {
       if (token) {
         return await apiFetchAuth<ApiDriverRouteResponse>(`/tracking/driver/${driverId}/route-today`, token);

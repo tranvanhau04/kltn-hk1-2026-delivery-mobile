@@ -67,6 +67,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const isAuthenticated = !!accessToken && !!user;
 
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
+  const clearStorage = useCallback(async () => {
+    await SecureStore.deleteItemAsync(STORE_KEY_ACCESS);
+    await SecureStore.deleteItemAsync(STORE_KEY_REFRESH);
+    await SecureStore.deleteItemAsync(STORE_KEY_USER);
+  }, []);
+
   // ─── Load driver profile from backend ────────────────────────────────────────
   const loadDriverProfile = useCallback(async (userId: string, token: string) => {
     setIsLoadingDriver(true);
@@ -91,14 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoadingDriver(false);
     }
-  }, []);
-
-  // ─── Helpers ─────────────────────────────────────────────────────────────────
-  const clearStorage = useCallback(async () => {
-    await SecureStore.deleteItemAsync(STORE_KEY_ACCESS);
-    await SecureStore.deleteItemAsync(STORE_KEY_REFRESH);
-    await SecureStore.deleteItemAsync(STORE_KEY_USER);
-  }, []);
+  }, [clearStorage]);
 
   // ─── Boot: check stored token ────────────────────────────────────────────────
   const checkStoredToken = useCallback(async () => {

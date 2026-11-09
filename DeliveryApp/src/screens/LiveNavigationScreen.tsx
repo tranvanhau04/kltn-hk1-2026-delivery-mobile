@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,6 @@ import * as Location from 'expo-location';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import {
   ArrowLeft,
-  Navigation,
   MapPin,
   User,
   Locate,
@@ -24,7 +23,7 @@ import {
   Layers,
   Phone,
 } from 'lucide-react-native';
-import { COLORS, SIZES, TYPOGRAPHY } from '../theme/theme';
+import { SIZES } from '../theme/theme';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -57,10 +56,15 @@ export const LiveNavigationScreen = () => {
 
   // Extract params safely
   const params = route.params || {};
-  const destination = params.destination || {
-    latitude: 10.8222,
-    longitude: 106.6875,
-  };
+  const destLat = params.destination?.latitude ?? 10.8222;
+  const destLng = params.destination?.longitude ?? 106.6875;
+  const destination = useMemo(
+    () => ({
+      latitude: destLat,
+      longitude: destLng,
+    }),
+    [destLat, destLng]
+  );
   const address = params.address || 'Địa chỉ đang tải...';
   const customerName = params.customerName || 'Khách hàng';
   const customerPhone = params.customerPhone;
