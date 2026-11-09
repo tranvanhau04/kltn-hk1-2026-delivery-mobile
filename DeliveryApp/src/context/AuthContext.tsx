@@ -80,8 +80,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         maxVolumeM3: profile.maxVolumeM3,
         currentShiftStatus: profile.currentShiftStatus as DriverProfile['currentShiftStatus'],
       });
-    } catch (err) {
+    } catch (err: any) {
       console.warn('[AuthContext] Failed to load driver profile:', err);
+      if (err?.status === 401 || err?.message?.includes('401') || err?.message?.includes('Unauthorized')) {
+        await clearStorage();
+        setAccessToken(null);
+        setUser(null);
+        setDriverProfile(null);
+      }
     } finally {
       setIsLoadingDriver(false);
     }

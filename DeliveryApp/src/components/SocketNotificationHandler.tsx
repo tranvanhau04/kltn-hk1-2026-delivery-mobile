@@ -85,41 +85,43 @@ export const SocketNotificationHandler: React.FC = () => {
     };
   }, [isAuthenticated, accessToken, user?.role]);
 
-  // 3. STEP 1: Listen for 'server:new_route_assigned' with robust defensive handling
+  // 3. STEP 1: Listen for 'new_route_assigned' & 'server:new_route_assigned'
   useEffect(() => {
     const unsubscribe = onNewRouteAssigned(async (payload: NewRouteAssignedPayload) => {
       try {
-        console.log('[SocketNotificationHandler] 🔔 Received server:new_route_assigned:', payload);
+        console.log('[SocketNotificationHandler] 🔔 Received new route assignment event:', payload);
 
-        if (!payload || !payload.routeId) {
-          console.warn('[SocketNotificationHandler] Received invalid payload, skipping');
+        if (!payload) {
+          console.warn('[SocketNotificationHandler] Received empty payload, skipping');
           return;
         }
 
-        // 1. Silent data refresh in AppContext and AuthContext
-        try {
-          await Promise.allSettled([
-            refreshRoute(payload.driverId),
-            refreshDriverProfile(),
-          ]);
-        } catch (refreshErr) {
-          console.warn('[SocketNotificationHandler] Route/profile refresh error:', refreshErr);
-        }
+        // 1. Silent data refresh in AppContext and AuthContext (refetches route-today and driver profile)
+        // Wrapped in 1500ms setTimeout to avoid race condition while backend database commits VRP transactions
+        setTimeout(async () => {
+          try {
+            console.log('[SocketNotificationHandler] ⏳ Fetching latest route & profile after delay...');
+            await Promise.allSettled([
+              refreshRoute(payload.driverId || user?.id),
+              refreshDriverProfile(),
+            ]);
+            console.log('[SocketNotificationHandler] ✅ Route & profile updated.');
+          } catch (refreshErr) {
+            console.warn('[SocketNotificationHandler] Route/profile refresh error:', refreshErr);
+          }
+        }, 1500);
 
-        // 2. Physical haptic feedback
+        // 2. Physical haptic feedback (vibration pattern: [0, 500, 200, 500])
         try {
-          Vibration.vibrate([0, 300, 150, 300]);
+          Vibration.vibrate([0, 500, 200, 500]);
         } catch (vibErr) {
           console.warn('[SocketNotificationHandler] Vibration failed:', vibErr);
         }
 
         // 3. In-app Toast message (always safe)
         try {
-          toast.success(
-            '🚀 Chuyến Đi Mới!',
-            payload.message || `Tuyến ${payload.routeCode || ''} (${payload.stopCount || 0} điểm dừng) đã được gán.`,
-            5000,
-          );
+          const alertMessage = payload.message || 'Bạn vừa được phân công một tuyến đường mới.';
+          toast.success('Đơn hàng mới!', alertMessage, 5000);
         } catch (toastErr) {
           console.warn('[SocketNotificationHandler] Toast failed:', toastErr);
         }
@@ -132,16 +134,16 @@ export const SocketNotificationHandler: React.FC = () => {
               await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
                 name: 'Điều Phối Tuyến Mới',
                 importance: Notifications.AndroidImportance.HIGH,
-                vibrationPattern: [0, 250, 250, 250],
+                vibrationPattern: [0, 500, 200, 500],
                 lightColor: '#2563EB',
               });
             }
 
             await Notifications.scheduleNotificationAsync({
               content: {
-                title: '🚀 Bạn có chuyến đi mới!',
-                body: `Tuyến ${payload.routeCode || ''} (${payload.stopCount || 0} điểm dừng) đã sẵn sàng.`,
-                data: { routeId: payload.routeId },
+                title: 'Đơn hàng mới!',
+                body: payload.message || 'Bạn vừa được phân công một tuyến đường mới.',
+                data: { routeId: payload.routeId, orderId: payload.orderId },
                 ...(Platform.OS === 'android' ? { channelId: ANDROID_CHANNEL_ID } : {}),
               } as any,
               trigger: null,
@@ -157,12 +159,12 @@ export const SocketNotificationHandler: React.FC = () => {
         // 5. Native Alert modal
         try {
           Alert.alert(
-            '🚀 Bạn Có Chuyến Đi Mới!',
-            `Điều phối viên vừa gán tuyến ${payload.routeCode || ''} (${payload.stopCount || 0} điểm dừng).\n\nBạn có muốn mở danh sách nhiệm vụ ngay không?`,
+            'Đơn hàng mới!',
+            payload.message || 'Bạn vừa được phân công một tuyến đường mới.',
             [
-              { text: 'Để sau', style: 'cancel' },
+              { text: 'Đóng', style: 'cancel' },
               {
-                text: 'Xem ngay',
+                text: 'Xem chi tiết',
                 onPress: () => {
                   try {
                     if (navigationRef.isReady()) {
@@ -187,7 +189,7 @@ export const SocketNotificationHandler: React.FC = () => {
     return () => {
       unsubscribe();
     };
-  }, [refreshRoute, refreshDriverProfile, toast]);
+  }, [refreshRoute, refreshDriverProfile, toast, user?.id]);
 
   return null;
 };

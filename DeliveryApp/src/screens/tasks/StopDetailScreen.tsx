@@ -123,15 +123,22 @@ export const StopDetailScreen = () => {
     );
   };
 
-  /** Navigate to TrackScreen for In-App Navigation */
+  /** Navigate to LiveNavigationScreen for In-App Live Navigation 3D */
   const handleDirections = () => {
-    navigation.navigate('Track', {
-      selectedStopId: stop.id,
-      destLat: stop.order.lat,
-      destLng: stop.order.lng,
+    if (!stop?.order?.lat || !stop?.order?.lng) {
+      Alert.alert('Không có tọa độ GPS', 'Đơn hàng này chưa có tọa độ định vị để chỉ đường.');
+      return;
+    }
+    navigation.navigate('LiveNavigationScreen', {
+      destination: {
+        latitude: stop.order.lat,
+        longitude: stop.order.lng,
+      },
       address: stop.order.delivery_address,
       customerName: stop.order.receiver_name,
-      autoStartNavigation: false,
+      customerPhone: stop.order.receiver_phone,
+      orderCode: stop.order.code,
+      stopId: stop.id,
     });
   };
 

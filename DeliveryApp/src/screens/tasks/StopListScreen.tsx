@@ -174,11 +174,15 @@ export const StopListScreen = () => {
     }
   };
 
-  // ─── 4. Mở Google Maps ngoài chỉ đường từ vị trí hiện tại (KLTN-79) ─────────
-  const handleOpenGoogleMaps = async (
+  // ─── 4. Điều hướng trực tiếp trong app (In-App Live Navigation 3D) ─────
+  const handleStartInAppNavigation = (
     lat?: number | null,
     lng?: number | null,
-    address?: string
+    address?: string,
+    customerName?: string,
+    stopId?: string,
+    customerPhone?: string,
+    orderCode?: string
   ) => {
     if (lat == null || lng == null || isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) {
       Alert.alert(
@@ -189,32 +193,17 @@ export const StopListScreen = () => {
       return;
     }
 
-    const destination = encodeURIComponent(`${lat},${lng}`);
-    // Native intent cho Android app
-    const nativeGoogleMapsUrl = `google.navigation:q=${destination}`;
-    // Universal URL chuẩn Google Maps (hoạt động cả iOS, Android, Web browser)
-    const webGoogleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
-
-    try {
-      const canOpenNative = await Linking.canOpenURL(nativeGoogleMapsUrl);
-      if (canOpenNative) {
-        await Linking.openURL(nativeGoogleMapsUrl);
-        return;
-      }
-    } catch {
-      // Bỏ qua lỗi check native để chạy tiếp fallback
-    }
-
-    try {
-      const canOpenWeb = await Linking.canOpenURL(webGoogleMapsUrl);
-      if (canOpenWeb) {
-        await Linking.openURL(webGoogleMapsUrl);
-      } else {
-        Alert.alert('Lỗi', 'Không thể tìm thấy ứng dụng Bản đồ hoặc trình duyệt phù hợp.');
-      }
-    } catch {
-      Alert.alert('Lỗi', 'Không thể mở liên kết chỉ đường Google Maps.');
-    }
+    navigation.navigate('LiveNavigationScreen', {
+      destination: {
+        latitude: Number(lat),
+        longitude: Number(lng),
+      },
+      address: address || '',
+      customerName: customerName || 'Khách hàng',
+      customerPhone,
+      orderCode,
+      stopId,
+    });
   };
 
   // ─── 5. Cấu hình hiển thị trạng thái (Màu sắc + Icon + Nhãn rõ ràng) ───────
@@ -483,14 +472,18 @@ export const StopListScreen = () => {
 
                   <View style={styles.actionDivider} />
 
-                  {/* Nút Chỉ đường Google Maps */}
+                  {/* Nút Chỉ đường trực tiếp (In-App Live Navigation 3D) */}
                   <TouchableOpacity
                     style={styles.actionBtn}
                     onPress={() =>
-                      handleOpenGoogleMaps(
+                      handleStartInAppNavigation(
                         item.order.lat,
                         item.order.lng,
-                        item.order.delivery_address
+                        item.order.delivery_address,
+                        item.order.receiver_name,
+                        item.id,
+                        item.order.receiver_phone,
+                        item.order.code
                       )
                     }
                     activeOpacity={0.7}
