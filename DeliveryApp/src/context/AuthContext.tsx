@@ -67,6 +67,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const isAuthenticated = !!accessToken && !!user;
 
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
+  const clearStorage = useCallback(async () => {
+    await SecureStore.deleteItemAsync(STORE_KEY_ACCESS);
+    await SecureStore.deleteItemAsync(STORE_KEY_REFRESH);
+    await SecureStore.deleteItemAsync(STORE_KEY_USER);
+  }, []);
+
   // ─── Load driver profile from backend ────────────────────────────────────────
   const loadDriverProfile = useCallback(async (userId: string, token: string) => {
     setIsLoadingDriver(true);
@@ -80,19 +87,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         maxVolumeM3: profile.maxVolumeM3,
         currentShiftStatus: profile.currentShiftStatus as DriverProfile['currentShiftStatus'],
       });
-    } catch (err) {
+    } catch (err: any) {
       console.warn('[AuthContext] Failed to load driver profile:', err);
+      if (err?.status === 401 || err?.message?.includes('401') || err?.message?.includes('Unauthorized')) {
+        await clearStorage();
+        setAccessToken(null);
+        setUser(null);
+        setDriverProfile(null);
+      }
     } finally {
       setIsLoadingDriver(false);
     }
-  }, []);
-
-  // ─── Helpers ─────────────────────────────────────────────────────────────────
-  const clearStorage = useCallback(async () => {
-    await SecureStore.deleteItemAsync(STORE_KEY_ACCESS);
-    await SecureStore.deleteItemAsync(STORE_KEY_REFRESH);
-    await SecureStore.deleteItemAsync(STORE_KEY_USER);
-  }, []);
+  }, [clearStorage]);
 
   // ─── Boot: check stored token ────────────────────────────────────────────────
   const checkStoredToken = useCallback(async () => {

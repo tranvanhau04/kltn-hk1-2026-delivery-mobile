@@ -26,8 +26,7 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react-native';
-import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
-import { MainTabParamList } from '../../navigation/MainTabNavigator';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -74,8 +73,15 @@ export const TrackScreen = () => {
   const [driverCoord, setDriverCoord] = useState<{ latitude: number; longitude: number; heading?: number | null } | null>(null);
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
 
-  const tabRoute = useRoute<RouteProp<MainTabParamList, 'Track'>>();
-  const navParams = tabRoute.params;
+  const tabRoute = useRoute<any>();
+  const navParams = tabRoute.params as {
+    selectedStopId?: string;
+    destLat?: number;
+    destLng?: number;
+    address?: string;
+    customerName?: string;
+    autoStartNavigation?: boolean;
+  } | undefined;
 
   const [isNavigating, setIsNavigating] = useState(false);
   const [navCoords, setNavCoords] = useState<[number, number][]>([]);

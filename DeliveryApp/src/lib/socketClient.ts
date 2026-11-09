@@ -58,14 +58,17 @@ export interface EmitLocationPayload {
 }
 
 export interface NewRouteAssignedPayload {
-  routeId: string;
-  routeCode: string;
-  driverId: string;
-  stopCount: number;
+  routeId?: string;
+  routeCode?: string;
+  orderId?: string;
+  orderCode?: string;
+  driverId?: string;
+  stopCount?: number;
   totalDistanceKm?: number;
   totalEstimatedTimeMin?: number;
-  message: string;
-  assignedAt: string;
+  message?: string;
+  assignedAt?: string;
+  [key: string]: any;
 }
 
 export type RouteAssignedCallback = (payload: NewRouteAssignedPayload) => void;
@@ -128,26 +131,38 @@ export function connectSocket(token: string): void {
     console.warn(`[SocketClient] connect_error: ${err.message}`);
   });
 
-  // Re-attach persistent listeners with safe error handling
+  // Re-attach persistent listeners with safe error handling and deduplication
   routeAssignedListeners.forEach((cb) => {
-    socket?.on('server:new_route_assigned', (data) => {
+    const safeDispatch = (data: any) => {
       try {
         cb(data);
       } catch (err) {
         console.error('[SocketClient] Unhandled error in route listener:', err);
       }
-    });
+    };
+    socket?.on('server:new_route_assigned', safeDispatch);
+    socket?.on('new_route_assigned', safeDispatch);
   });
 }
 
 /**
- * Đăng ký lắng nghe sự kiện 'server:new_route_assigned' khi điều phối viên phân công tuyến mới.
+ * Đăng ký lắng nghe sự kiện 'new_route_assigned' / 'server:new_route_assigned' khi điều phối viên phân công tuyến mới.
  * Tự động gắn lại listener khi socket kết nối lại. Bọc try-catch an toàn tránh crash app.
  * @returns Hàm unsubscribe để dọn dẹp khi unmount.
  */
 export function onNewRouteAssigned(callback: RouteAssignedCallback): () => void {
+  let lastEventKey = '';
+  let lastEventTime = 0;
+
   const safeCallback: RouteAssignedCallback = (payload) => {
     try {
+      const now = Date.now();
+      const eventKey = payload?.routeId || payload?.orderId || payload?.orderCode || payload?.message || JSON.stringify(payload);
+      if (eventKey === lastEventKey && now - lastEventTime < 2500) {
+        return; // debounce duplicate emit between new_route_assigned and server:new_route_assigned
+      }
+      lastEventKey = eventKey;
+      lastEventTime = now;
       callback(payload);
     } catch (err) {
       console.error('[SocketClient] Error in onNewRouteAssigned callback:', err);
@@ -157,10 +172,12 @@ export function onNewRouteAssigned(callback: RouteAssignedCallback): () => void 
   routeAssignedListeners.add(safeCallback);
   if (socket) {
     socket.on('server:new_route_assigned', safeCallback);
+    socket.on('new_route_assigned', safeCallback);
   }
   return () => {
     routeAssignedListeners.delete(safeCallback);
     socket?.off('server:new_route_assigned', safeCallback);
+    socket?.off('new_route_assigned', safeCallback);
   };
 }
 

@@ -20,8 +20,8 @@
 import Constants from 'expo-constants';
 
 // ─── ⚙️ Override (set to null for auto-detection) ─────────────────────────────
-const OVERRIDE_API_HOST: string | null = '192.168.1.30';
-// Dev machine Wi-Fi IP: 192.168.1.30
+const OVERRIDE_API_HOST: string | null = null;
+// Leave null for auto-detection or set to your machine Wi-Fi IP (e.g. '192.168.1.125')
 
 // ─── Backend port ──────────────────────────────────────────────────────────────
 const API_PORT = 3001;
@@ -297,10 +297,24 @@ export async function fetchDriverRoute(
   driverId: string,
   token?: string,
 ): Promise<ApiDriverRouteResponse> {
-  if (token) {
-    return apiFetchAuth<ApiDriverRouteResponse>(`/driver/${driverId}/route`, token);
+  try {
+    if (token) {
+      return await apiFetchAuth<ApiDriverRouteResponse>(`/driver/${driverId}/route`, token);
+    }
+    return await apiFetch<ApiDriverRouteResponse>(`/driver/${driverId}/route`);
+  } catch {
+    try {
+      if (token) {
+        return await apiFetchAuth<ApiDriverRouteResponse>(`/tracking/driver/${driverId}/route-today`, token);
+      }
+      return await apiFetch<ApiDriverRouteResponse>(`/tracking/driver/${driverId}/route-today`);
+    } catch {
+      if (token) {
+        return await apiFetchAuth<ApiDriverRouteResponse>(`/routes/driver/${driverId}`, token);
+      }
+      return await apiFetch<ApiDriverRouteResponse>(`/routes/driver/${driverId}`);
+    }
   }
-  return apiFetch<ApiDriverRouteResponse>(`/driver/${driverId}/route`);
 }
 
 /**

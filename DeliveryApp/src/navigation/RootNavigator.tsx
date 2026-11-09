@@ -17,7 +17,7 @@
  *     ├─ No → LoginScreen
  *     │
  *     ▼
- *   MainTabs (HomeScreen, Tasks, Track, Account)
+ *   MainTabs (HomeScreen, Fleet, Tasks, Account)
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
@@ -29,6 +29,7 @@ import { PermissionScreen } from '../screens/auth/PermissionScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { MainTabNavigator } from './MainTabNavigator';
 import { EndShiftModal } from '../screens/modals/EndShiftModal';
+import { LiveNavigationScreen, LiveNavigationParams } from '../screens/LiveNavigationScreen';
 import { useAuth } from '../context/AuthContext';
 import { COLORS } from '../theme/theme';
 
@@ -37,6 +38,7 @@ export type RootStackParamList = {
   Login: undefined;
   MainTabs: undefined;
   EndShiftModal: undefined;
+  LiveNavigationScreen: LiveNavigationParams;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -102,6 +104,10 @@ export const RootNavigator = () => {
             name="EndShiftModal"
             component={EndShiftModal}
             options={{ presentation: 'fullScreenModal' }}
+          />
+          <Stack.Screen
+            name="LiveNavigationScreen"
+            component={LiveNavigationScreen}
           />
         </>
       )}
