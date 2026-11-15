@@ -9,7 +9,7 @@
  *
  * Shift toggle uses optimistic update with rollback on API failure.
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -58,9 +59,10 @@ const SummaryCard = ({ icon, label, value, color, bgColor }: SummaryCardProps) =
 // ─── Main HomeScreen ───────────────────────────────────────────────────────────
 export const HomeScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { user, driverProfile, isLoadingDriver, toggleShiftStatus, logout } = useAuth();
-  const { route, stops, isLoadingRoute } = useAppContext();
+  const { user, driverProfile, isLoadingDriver, toggleShiftStatus, refreshDriverProfile, logout } = useAuth();
+  const { route, stops, isLoadingRoute, refreshRoute, refreshShift } = useAppContext();
   const toast = useToast();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const isBusy = driverProfile?.currentShiftStatus === 'BUSY' || driverProfile?.currentShiftStatus === 'ON_DUTY';
   const isReady = driverProfile?.currentShiftStatus === 'ONLINE_READY';
@@ -75,6 +77,22 @@ export const HomeScreen = () => {
       .reduce((sum, s) => sum + (s.order?.cod_amount ?? 0), 0);
     return { assigned, delivered, codHeld };
   }, [stops]);
+
+  // ─── Pull-to-refresh handler ─────────────────────────────────────────────
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        refreshRoute(),
+        refreshShift(),
+        refreshDriverProfile(),
+      ]);
+    } catch (err) {
+      console.warn('[HomeScreen] Refresh error:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshRoute, refreshShift, refreshDriverProfile]);
 
   // ─── Handle shift toggle ─────────────────────────────────────────────────
   const handleToggleShift = async () => {
@@ -95,6 +113,7 @@ export const HomeScreen = () => {
     // Khi ca đang tắt (OFFLINE) và muốn bật lên (ONLINE_READY)
     try {
       await toggleShiftStatus();
+      await refreshShift();
       toast.success('Bắt đầu ca làm việc', 'Trạng thái: Sẵn sàng nhận đơn giao hàng.');
     } catch (err: any) {
       toast.error('Lỗi bật ca', err?.message || 'Không thể bắt đầu ca làm việc, vui lòng thử lại.');
@@ -143,6 +162,14 @@ export const HomeScreen = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
       >
         {/* ── Header: Greeting ───────────────────────────────────────────── */}
         <View style={styles.header}>

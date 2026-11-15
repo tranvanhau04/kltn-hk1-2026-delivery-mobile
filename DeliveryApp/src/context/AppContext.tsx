@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { Driver, Shift, Route, Stop } from '../types/mobile';
-import { MOCK_DRIVER, MOCK_SHIFT } from '../data/mockDriverData';
-import { fetchDriverRoute } from '../lib/api';
+import { MOCK_DRIVER } from '../data/mockDriverData';
+import { fetchDriverRoute, fetchShiftSummaryApi } from '../lib/api';
 import { useAuth } from './AuthContext';
 
 // Default fallback driver ID from init.sql seed data (Ngô Văn Tài)
@@ -15,6 +15,7 @@ type AppContextType = {
   polylineCoords: [number, number][];
   isLoadingRoute: boolean;
   refreshRoute: (overrideDriverId?: string) => Promise<void>;
+  refreshShift: () => Promise<void>;
   setDriver: React.Dispatch<React.SetStateAction<Driver>>;
   setShift: React.Dispatch<React.SetStateAction<Shift | null>>;
   setStops: React.Dispatch<React.SetStateAction<Stop[]>>;
@@ -27,7 +28,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const { user, token } = useAuth();
   const [driver, setDriver] = useState<Driver>(MOCK_DRIVER);
-  const [shift, setShift] = useState<Shift | null>(MOCK_SHIFT);
+  const [shift, setShift] = useState<Shift | null>(null);
   const [route, setRoute] = useState<Route | null>(null);
   const [stops, setStops] = useState<Stop[]>([]);
   const [polylineCoords, setPolylineCoords] = useState<[number, number][]>([]);
@@ -105,10 +106,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user?.id, token]);
 
-  // Fetch route when user changes
+  // Fetch route and active shift when user or token changes
+  const refreshShift = useCallback(async () => {
+    if (!token) {
+      setShift(null);
+      return;
+    }
+    try {
+      const summary = await fetchShiftSummaryApi(token);
+      if (summary?.activeShift) {
+        setShift({
+          id: summary.activeShift.id,
+          driver_id: summary.activeShift.driverId,
+          start_time: summary.activeShift.startTime,
+          end_time: summary.activeShift.endTime,
+          status: summary.activeShift.status as Shift['status'],
+          cod_collected: summary.activeShift.codCollected ?? summary.pendingCodAmount ?? 0,
+          cod_submitted: summary.activeShift.codSubmitted ?? 0,
+        });
+      } else {
+        setShift(null);
+      }
+    } catch (err) {
+      console.warn('[AppContext] refreshShift failed:', err);
+    }
+  }, [token]);
+
   useEffect(() => {
     refreshRoute();
-  }, [refreshRoute]);
+    refreshShift();
+  }, [refreshRoute, refreshShift]);
 
   const updateStopStatus = (stopId: string, status: Stop['status'], codCollected?: number) => {
     setStops((prevStops) =>
@@ -154,6 +181,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         polylineCoords,
         isLoadingRoute,
         refreshRoute,
+        refreshShift,
         setDriver,
         setShift,
         setStops,

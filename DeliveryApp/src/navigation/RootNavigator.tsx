@@ -29,6 +29,7 @@ import { PermissionScreen } from '../screens/auth/PermissionScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { MainTabNavigator } from './MainTabNavigator';
 import { EndShiftModal } from '../screens/modals/EndShiftModal';
+import { ShiftHistoryScreen } from '../screens/tasks/ShiftHistoryScreen';
 import { LiveNavigationScreen, LiveNavigationParams } from '../screens/LiveNavigationScreen';
 import { useAuth } from '../context/AuthContext';
 import { COLORS } from '../theme/theme';
@@ -38,6 +39,7 @@ export type RootStackParamList = {
   Login: undefined;
   MainTabs: undefined;
   EndShiftModal: undefined;
+  ShiftHistoryScreen: undefined;
   LiveNavigationScreen: LiveNavigationParams;
 };
 
@@ -104,6 +106,11 @@ export const RootNavigator = () => {
             name="EndShiftModal"
             component={EndShiftModal}
             options={{ presentation: 'fullScreenModal' }}
+          />
+          <Stack.Screen
+            name="ShiftHistoryScreen"
+            component={ShiftHistoryScreen}
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="LiveNavigationScreen"
