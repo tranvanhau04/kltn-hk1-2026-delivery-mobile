@@ -19,10 +19,9 @@ import {
   Wallet,
   ShieldCheck,
   TrendingDown,
-  TrendingUp,
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
+import { COLORS, SIZES, COMMON_STYLES } from '../../theme/theme';
 import { useAuth } from '../../context/AuthContext';
 import { fetchShiftHistoryApi, ApiShiftHistoryItem } from '../../lib/api';
 
@@ -54,7 +53,7 @@ export const ShiftHistoryScreen = () => {
   const [shifts, setShifts] = useState<ApiShiftHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [page, setPage] = useState<number>(1);
+  const [_page, setPage] = useState<number>(1);
   const [total, setTotal] = useState<number>(0);
 
   const loadHistory = useCallback(
@@ -135,7 +134,6 @@ export const ShiftHistoryScreen = () => {
     const diff = item.codDifference;
     const isMatched = diff === 0;
     const isDeficit = diff > 0; // thu nhiều hơn nộp -> nộp thiếu
-    const isSurplus = diff < 0; // nộp nhiều hơn thu -> nộp dư
 
     return (
       <View style={styles.card}>
