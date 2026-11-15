@@ -11,7 +11,7 @@
  */
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { loginApi, fetchDriverProfile, updateShiftStatusApi, ApiLoginResponse } from '../lib/api';
+import { loginApi, fetchDriverProfile, updateShiftStatusApi, openShiftApi, ApiLoginResponse } from '../lib/api';
 
 // ─── Storage Keys ─────────────────────────────────────────────────────────────
 const STORE_KEY_ACCESS = 'auth_access_token';
@@ -53,7 +53,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshDriverProfile: () => Promise<void>;
-  toggleShiftStatus: () => Promise<void>;
+  toggleShiftStatus: (coords?: { latitude?: number; longitude?: number }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -163,7 +163,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, accessToken, loadDriverProfile]);
 
   // ─── Toggle Shift Status (OFFLINE ↔ ONLINE_READY) ───────────────────────────
-  const toggleShiftStatus = useCallback(async () => {
+  const toggleShiftStatus = useCallback(async (coords?: { latitude?: number; longitude?: number }) => {
     if (!user || !accessToken || !driverProfile) return;
 
     const currentStatus = driverProfile.currentShiftStatus;
@@ -173,12 +173,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const newStatus = currentStatus === 'ONLINE_READY' ? 'OFFLINE' : 'ONLINE_READY';
 
-    // Option A: Update state ONLY AFTER API returns success to avoid UI desync
     try {
-      await updateShiftStatusApi(user.id, newStatus, accessToken);
+      if (newStatus === 'ONLINE_READY') {
+        // Mở ca làm việc thực tế trong CSDL (Task KLTN-130)
+        await openShiftApi(
+          {
+            latitude: coords?.latitude,
+            longitude: coords?.longitude,
+          },
+          accessToken,
+        );
+      } else {
+        await updateShiftStatusApi(user.id, newStatus, accessToken);
+      }
       setDriverProfile(prev => prev ? { ...prev, currentShiftStatus: newStatus } : null);
     } catch (err) {
-      console.error('[AuthContext] updateShiftStatusApi failed, state unchanged:', err);
+      console.error('[AuthContext] toggleShiftStatus failed, state unchanged:', err);
       throw err; // Re-throw so UI can show error Alert/Toast
     }
   }, [user, accessToken, driverProfile]);

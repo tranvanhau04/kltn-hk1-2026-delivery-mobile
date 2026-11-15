@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   Linking,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -25,6 +26,9 @@ import {
   Wallet,
   CheckCircle2,
 } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation/RootNavigator';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -44,9 +48,9 @@ const DRIVER_EXTENDED = {
 // ─── Shift Status Badge ───────────────────────────────────────────────────────
 type ShiftStatus = 'OPEN' | 'PENDING_SETTLEMENT' | 'CLOSED';
 const shiftColors: Record<ShiftStatus, { bg: string; text: string; label: string }> = {
-  OPEN: { bg: '#D1FAE5', text: COLORS.success, label: 'OPEN' },
-  PENDING_SETTLEMENT: { bg: '#FEF3C7', text: '#D97706', label: 'PENDING SETTLEMENT' },
-  CLOSED: { bg: '#F3F4F6', text: COLORS.textSecondary, label: 'CLOSED' },
+  OPEN: { bg: '#D1FAE5', text: COLORS.success, label: 'Đang mở ca' },
+  PENDING_SETTLEMENT: { bg: '#FEF3C7', text: '#D97706', label: 'Chờ thủ quỹ duyệt' },
+  CLOSED: { bg: '#EFF6FF', text: '#2563EB', label: 'Đã đối soát xong' },
 };
 
 const ShiftBadge = ({ status }: { status: ShiftStatus }) => {
@@ -93,8 +97,21 @@ const MetricCard = ({ icon, value, label, accent }: MetricCardProps) => (
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export const AccountScreen = () => {
-  const { driver, shift } = useAppContext();
-  const { user, driverProfile, logout } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { driver, shift, refreshShift } = useAppContext();
+  const { user, driverProfile, refreshDriverProfile, logout } = useAuth();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([refreshShift(), refreshDriverProfile()]);
+    } catch (err) {
+      console.warn('[AccountScreen] Refresh error:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshShift, refreshDriverProfile]);
 
   const handleLogout = () => {
     Alert.alert(
@@ -128,7 +145,17 @@ export const AccountScreen = () => {
 
   return (
     <SafeAreaView style={COMMON_STYLES.container} edges={['top']}>
-      <ScrollView contentContainerStyle={{ padding: SIZES.padding_md }}>
+      <ScrollView
+        contentContainerStyle={{ padding: SIZES.padding_md }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
+      >
 
         {/* ── Header ── */}
         <Text style={[TYPOGRAPHY.header, { marginBottom: 4 }]}>Tài khoản của tôi</Text>
@@ -220,7 +247,7 @@ export const AccountScreen = () => {
             icon={<History color={COLORS.primary} size={20} />}
             label="Lịch sử ca & Lịch sử COD"
             subtitle="Xem chi tiết đối soát"
-            onPress={() => Alert.alert('Lịch sử', 'Chuyển đến màn hình chi tiết ca')}
+            onPress={() => navigation.navigate('ShiftHistoryScreen')}
           />
           <ActionRow
             icon={<Map color={COLORS.success} size={20} />}
