@@ -28,8 +28,8 @@ import {
 } from '../../lib/api';
 
 export const EndShiftModal = () => {
-  const { shift, stops, setDriver, setShift } = useAppContext();
-  const { token } = useAuth();
+  const { shift, stops, setDriver, setShift, refreshShift } = useAppContext();
+  const { token, refreshDriverProfile } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const toast = useToast();
 
@@ -104,11 +104,10 @@ export const EndShiftModal = () => {
   };
 
   const executeCloseShift = async () => {
-    const targetShiftId = shift?.id || summary?.activeShift?.id;
-    if (!targetShiftId) {
-      Alert.alert('Lỗi', 'Không tìm thấy ID ca làm việc cần đóng.');
-      return;
-    }
+    // Ưu tiên ID thật từ activeShift của backend, fallback sang shift context (nếu không phải mock) hoặc để undefined để backend tự tìm ca mở
+    const targetShiftId =
+      summary?.activeShift?.id ||
+      (shift?.id && shift.id !== 'shift_123' ? shift.id : undefined);
 
     if (!token) {
       Alert.alert('Lỗi phiên đăng nhập', 'Không tìm thấy token xác thực. Vui lòng đăng nhập lại.');
@@ -126,13 +125,22 @@ export const EndShiftModal = () => {
       }));
 
       // Cập nhật trạng thái ca làm việc sang PENDING_SETTLEMENT
-      if (shift) {
-        setShift({
-          ...shift,
-          status: 'PENDING_SETTLEMENT',
-          cod_submitted: numericSubmitted,
-          end_time: result.shift?.endTime || new Date().toISOString(),
-        });
+      setShift((prev) => ({
+        ...(prev || {}),
+        id: result.shift?.id || prev?.id || '',
+        driver_id: result.shift?.driverId || prev?.driver_id || '',
+        start_time: result.shift?.startTime || prev?.start_time || new Date().toISOString(),
+        end_time: result.shift?.endTime || new Date().toISOString(),
+        status: 'PENDING_SETTLEMENT',
+        cod_collected: result.summary?.codCollected ?? systemCod,
+        cod_submitted: numericSubmitted,
+      }));
+
+      try {
+        await refreshDriverProfile();
+        await refreshShift();
+      } catch {
+        // Non-blocking refresh
       }
 
       toast.success(

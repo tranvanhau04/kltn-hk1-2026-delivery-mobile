@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -73,9 +74,10 @@ const SummaryCard = ({ icon, label, value, color, bgColor }: SummaryCardProps) =
 // ─── Main HomeScreen ───────────────────────────────────────────────────────────
 export const HomeScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { user, driverProfile, isLoadingDriver, toggleShiftStatus, logout, token } = useAuth();
-  const { route, stops, shift, isLoadingRoute } = useAppContext();
+  const { user, driverProfile, isLoadingDriver, toggleShiftStatus, refreshDriverProfile, logout, token } = useAuth();
+  const { route, stops, shift, isLoadingRoute, refreshRoute, refreshShift } = useAppContext();
   const toast = useToast();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [todayEarnings, setTodayEarnings] = useState<ApiEarningsPeriod | null>(null);
   const [isLoadingEarnings, setIsLoadingEarnings] = useState(false);
@@ -119,6 +121,23 @@ export const HomeScreen = () => {
     return { assigned, delivered, codHeld };
   }, [stops, route, shift?.cod_collected]);
 
+  // ─── Pull-to-refresh handler ─────────────────────────────────────────────
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        refreshRoute(),
+        refreshShift(),
+        refreshDriverProfile(),
+        loadEarnings(),
+      ]);
+    } catch (err) {
+      console.warn('[HomeScreen] Refresh error:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshRoute, refreshShift, refreshDriverProfile, loadEarnings]);
+
   // ─── Handle shift toggle ─────────────────────────────────────────────────
   const handleToggleShift = async () => {
     if (isBusy) {
@@ -138,6 +157,7 @@ export const HomeScreen = () => {
     // Khi ca đang tắt (OFFLINE) và muốn bật lên (ONLINE_READY)
     try {
       await toggleShiftStatus();
+      await refreshShift();
       toast.success('Bắt đầu ca làm việc', 'Trạng thái: Sẵn sàng nhận đơn giao hàng.');
     } catch (err: any) {
       toast.error('Lỗi bật ca', err?.message || 'Không thể bắt đầu ca làm việc, vui lòng thử lại.');
@@ -190,6 +210,14 @@ export const HomeScreen = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
       >
         {/* ── Header: Greeting ───────────────────────────────────────────── */}
         <View style={styles.header}>

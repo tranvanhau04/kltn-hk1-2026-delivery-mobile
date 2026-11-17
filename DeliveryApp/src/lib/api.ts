@@ -411,7 +411,37 @@ export async function endDriverShift(driverId: string, codSubmitted: number, not
   });
 }
 
-// ─── Task 9.1: Close Shift & Shift Summary APIs ──────────────────────────────
+// ─── Task 9.1 & KLTN-130: Shift Lifecycle & Reconciliation APIs ─────────────────
+
+export interface ApiOpenShiftResponse {
+  success: boolean;
+  message: string;
+  shift: {
+    id: string;
+    driverId: string;
+    startTime: string;
+    endTime: string | null;
+    status: string;
+    startingCashCod: number;
+    codCollected: number;
+    codSubmitted: number;
+  };
+}
+
+/**
+ * POST /api/shifts/open
+ * Opens or resumes an active shift for the authenticated driver.
+ * Creates a record in the shifts table and sets driver status to ONLINE_READY.
+ */
+export async function openShiftApi(
+  options: { startingCash?: number; latitude?: number; longitude?: number } = {},
+  token: string,
+): Promise<ApiOpenShiftResponse> {
+  return apiFetchAuth<ApiOpenShiftResponse>('/shifts/open', token, {
+    method: 'POST',
+    body: JSON.stringify(options),
+  });
+}
 
 export interface ApiCloseShiftResponse {
   success: boolean;
@@ -435,18 +465,25 @@ export interface ApiCloseShiftResponse {
 }
 
 /**
- * POST /api/shifts/:shiftId/close
- * Close shift with COD declaration. Requires authentication.
+ * POST /api/shifts/:shiftId/close (hoặc fallback POST /api/shifts/close)
+ * Close shift with COD declaration and optional GPS coordinates. Requires authentication.
  */
 export async function closeShiftApi(
-  shiftId: string,
+  shiftId: string | undefined | null,
   codSubmitted: number,
   notes: string | undefined,
   token: string,
+  coords?: { latitude?: number; longitude?: number },
 ): Promise<ApiCloseShiftResponse> {
-  return apiFetchAuth<ApiCloseShiftResponse>(`/shifts/${shiftId}/close`, token, {
+  const endpoint = shiftId ? `/shifts/${shiftId}/close` : '/shifts/close';
+  return apiFetchAuth<ApiCloseShiftResponse>(endpoint, token, {
     method: 'POST',
-    body: JSON.stringify({ codSubmitted, notes: notes || undefined }),
+    body: JSON.stringify({
+      codSubmitted,
+      notes: notes || undefined,
+      latitude: coords?.latitude,
+      longitude: coords?.longitude,
+    }),
   });
 }
 
@@ -476,6 +513,63 @@ export async function fetchShiftSummaryApi(
   token: string,
 ): Promise<ApiShiftSummaryResponse> {
   return apiFetchAuth<ApiShiftSummaryResponse>('/driver/shift/summary', token);
+}
+
+export interface ApiShiftHistoryItem {
+  id: string;
+  driverId?: string;
+  startTime: string;
+  endTime: string | null;
+  status: 'OPEN' | 'PENDING_SETTLEMENT' | 'CLOSED' | 'RECONCILED' | string;
+  statusLabel?: string;
+  startingCashCod: number;
+  codCollected: number;
+  codSubmitted: number;
+  codDifference: number;
+  currentLatitude?: number | null;
+  currentLongitude?: number | null;
+  reconciledBy?: string | null;
+  reconciledByName?: string | null;
+  reconciledAt: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ApiShiftHistoryResponse {
+  success: boolean;
+  items?: ApiShiftHistoryItem[];
+  data?: ApiShiftHistoryItem[];
+  total?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
+  message?: string;
+}
+
+/**
+ * GET /api/driver/shifts/history (Task KLTN-130) & /api/drivers/me/shift-history
+ * Fetch shift reconciliation history for authenticated driver.
+ */
+export async function fetchShiftHistoryApi(
+  token: string,
+  pageOrUserId?: number | string,
+  limit = 20,
+): Promise<ApiShiftHistoryResponse> {
+  if (typeof pageOrUserId === 'string') {
+    return apiFetchAuth<ApiShiftHistoryResponse>(
+      `/drivers/${pageOrUserId}/shift-history`,
+      token,
+    );
+  }
+  const page = typeof pageOrUserId === 'number' ? pageOrUserId : 1;
+  const res = await apiFetchAuth<ApiShiftHistoryResponse>(
+    `/driver/shifts/history?page=${page}&limit=${limit}`,
+    token,
+  );
+  if (res && res.items && !res.data) {
+    res.data = res.items;
+  }
+  return res;
 }
 
 /**
@@ -811,27 +905,6 @@ export interface ApiAccountSummaryResponse {
   message?: string;
 }
 
-export interface ApiShiftHistoryItem {
-  id: string;
-  startTime: string;
-  endTime: string | null;
-  status: string;
-  statusLabel: string;
-  startingCashCod: number;
-  codCollected: number;
-  codSubmitted: number;
-  codDifference: number;
-  reconciledAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ApiShiftHistoryResponse {
-  success: boolean;
-  data: ApiShiftHistoryItem[];
-  message?: string;
-}
-
 export interface ApiChangePasswordResponse {
   success: boolean;
   message: string;
@@ -879,18 +952,6 @@ export async function fetchAccountSummaryApi(
 ): Promise<ApiAccountSummaryResponse> {
   const path = userId ? `/drivers/${userId}/account-summary` : '/drivers/me/account-summary';
   return apiFetchAuth<ApiAccountSummaryResponse>(path, token);
-}
-
-/**
- * GET /api/drivers/me/shift-history
- * Fetches past 30 shifts with COD reconciliation history.
- */
-export async function fetchShiftHistoryApi(
-  token: string,
-  userId?: string,
-): Promise<ApiShiftHistoryResponse> {
-  const path = userId ? `/drivers/${userId}/shift-history` : '/drivers/me/shift-history';
-  return apiFetchAuth<ApiShiftHistoryResponse>(path, token);
 }
 
 /**

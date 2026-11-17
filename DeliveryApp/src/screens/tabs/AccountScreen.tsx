@@ -49,6 +49,8 @@ import {
   Clock,
   Banknote,
 } from 'lucide-react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation/RootNavigator';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -196,8 +198,8 @@ interface InAppToast {
 export const AccountScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { user, driverProfile, token, logout } = useAuth();
-  const { driver, shift } = useAppContext();
+  const { user, driverProfile, refreshDriverProfile, token, logout } = useAuth();
+  const { driver, shift, refreshShift } = useAppContext();
 
   // Summary state
   const [accountData, setAccountData] = useState<ApiAccountSummaryResponse | null>(null);
@@ -352,10 +354,15 @@ export const AccountScreen = () => {
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    Promise.all([loadAccountData(false), loadEarningsData(false)]).finally(() => {
+    Promise.all([
+      loadAccountData(false),
+      loadEarningsData(false),
+      refreshShift ? refreshShift() : Promise.resolve(),
+      refreshDriverProfile ? refreshDriverProfile() : Promise.resolve(),
+    ]).finally(() => {
       setIsRefreshing(false);
     });
-  }, [loadAccountData, loadEarningsData]);
+  }, [loadAccountData, loadEarningsData, refreshShift, refreshDriverProfile]);
 
   // ─── Fetch Shift History ──────────────────────────────────────────────────
   const loadShiftHistory = useCallback(async () => {
@@ -1101,7 +1108,7 @@ export const AccountScreen = () => {
                 nestedScrollEnabled={true}
                 renderItem={({ item }) => {
                   const isDiff = item.codDifference !== 0;
-                  const isClosed = item.status === 'CLOSED' || item.status === 'RECONCILED';
+                  const isClosed = item.status === 'CLOSED' || (item.status as string) === 'RECONCILED';
                   const isPending = item.status === 'PENDING_SETTLEMENT';
 
                   return (
