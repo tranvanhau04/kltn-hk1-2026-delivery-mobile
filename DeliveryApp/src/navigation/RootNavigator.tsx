@@ -20,18 +20,17 @@
  *   MainTabs (HomeScreen, Fleet, Tasks, Account)
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Location from 'expo-location';
 import { Camera } from 'expo-camera';
 import * as Notifications from 'expo-notifications';
 import { PermissionScreen } from '../screens/auth/PermissionScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
+import { BrandSplashScreen } from '../screens/auth/BrandSplashScreen';
 import { MainTabNavigator } from './MainTabNavigator';
 import { EndShiftModal } from '../screens/modals/EndShiftModal';
 import { LiveNavigationScreen, LiveNavigationParams } from '../screens/LiveNavigationScreen';
 import { useAuth } from '../context/AuthContext';
-import { COLORS } from '../theme/theme';
 
 export type RootStackParamList = {
   Permission: undefined;
@@ -72,17 +71,9 @@ export const RootNavigator = () => {
     checkPermissions();
   }, [checkPermissions]);
 
-  // ─── Splash screen while loading auth / checking permissions ──────────────
+  // ─── Modern Splash Screen while loading auth / checking permissions ──────────
   if (isAuthLoading || hasPermissions === null) {
-    return (
-      <View style={styles.splash}>
-        <View style={styles.logoBox}>
-          <Text style={styles.logoIcon}>V</Text>
-        </View>
-        <Text style={styles.splashTitle}>LOGISTICS PRO</Text>
-        <ActivityIndicator color={COLORS.primary} size="large" style={{ marginTop: 24 }} />
-      </View>
-    );
+    return <BrandSplashScreen />;
   }
 
   return (
@@ -115,33 +106,3 @@ export const RootNavigator = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  splash: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoBox: {
-    width: 80,
-    height: 80,
-    backgroundColor: COLORS.primary,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    transform: [{ rotate: '45deg' }],
-    marginBottom: 24,
-  },
-  logoIcon: {
-    color: '#FFF',
-    fontSize: 40,
-    fontWeight: 'bold',
-    transform: [{ rotate: '-45deg' }],
-  },
-  splashTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: COLORS.textPrimary,
-    letterSpacing: 3,
-  },
-});

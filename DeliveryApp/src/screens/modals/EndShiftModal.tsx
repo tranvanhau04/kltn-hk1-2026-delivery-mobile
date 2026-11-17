@@ -70,8 +70,14 @@ export const EndShiftModal = () => {
   const failed = summary?.failedOrdersCount ?? stops.filter((s) => s.status === 'FAILED').length;
   const pendingStops = stops.filter((s) => s.status === 'PENDING' || s.status === 'ARRIVED').length;
 
-  // Expected system COD
-  const systemCod = summary?.pendingCodAmount ?? shift?.cod_collected ?? 0;
+  const completedStopsCod = useMemo(() => {
+    return stops
+      .filter((s) => s.status === 'COMPLETED')
+      .reduce((sum, s) => sum + (s.order?.cod_amount ?? 0), 0);
+  }, [stops]);
+
+  // Expected system COD: Tiền COD thực tế tài xế đã thu từ các đơn hàng giao thành công
+  const systemCod = summary?.pendingCodAmount ?? (completedStopsCod > 0 ? completedStopsCod : (shift?.cod_collected ?? 0));
 
   // Real-time parsed submitted COD & discrepancy
   const numericSubmitted = useMemo(() => {

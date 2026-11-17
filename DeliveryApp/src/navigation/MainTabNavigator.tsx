@@ -11,7 +11,7 @@ export type MainTabParamList = {
   Home: undefined;
   Fleet: undefined;
   Tasks: undefined;
-  Account: undefined;
+  Account: { openEarningsModal?: boolean } | undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();

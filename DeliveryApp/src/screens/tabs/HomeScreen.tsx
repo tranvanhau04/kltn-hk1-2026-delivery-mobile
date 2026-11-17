@@ -9,7 +9,7 @@
  *
  * Shift toggle uses optimistic update with rollback on API failure.
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -29,14 +29,29 @@ import {
   Truck,
   Power,
   LogOut,
+  TrendingUp,
+  ChevronRight,
 } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAuth } from '../../context/AuthContext';
 import { useAppContext } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { RootStackParamList } from '../../navigation/RootNavigator';
+import { fetchDriverEarningsApi, ApiEarningsPeriod } from '../../lib/api';
+
+// ─── Vehicle Type Formatter ──────────────────────────────────────────────────
+const formatVehicleType = (type?: string): string => {
+  if (!type) return 'Phương tiện giao hàng';
+  const upper = type.toUpperCase();
+  if (upper.includes('VAN_500') || upper.includes('VAN 500')) return 'Xe tải Van (500kg)';
+  if (upper.includes('VAN_1000') || upper.includes('VAN 1000')) return 'Xe tải Van (1.000kg)';
+  if (upper.includes('VAN')) return 'Xe tải Van';
+  if (upper.includes('MOTORBIKE') || upper.includes('BIKE')) return 'Xe máy - Giao hàng';
+  if (upper.includes('TRUCK')) return 'Xe tải thùng';
+  return type;
+};
 
 // ─── Summary Card Component ────────────────────────────────────────────────────
 type SummaryCardProps = {
@@ -58,9 +73,33 @@ const SummaryCard = ({ icon, label, value, color, bgColor }: SummaryCardProps) =
 // ─── Main HomeScreen ───────────────────────────────────────────────────────────
 export const HomeScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { user, driverProfile, isLoadingDriver, toggleShiftStatus, logout } = useAuth();
-  const { route, stops, isLoadingRoute } = useAppContext();
+  const { user, driverProfile, isLoadingDriver, toggleShiftStatus, logout, token } = useAuth();
+  const { route, stops, shift, isLoadingRoute } = useAppContext();
   const toast = useToast();
+
+  const [todayEarnings, setTodayEarnings] = useState<ApiEarningsPeriod | null>(null);
+  const [isLoadingEarnings, setIsLoadingEarnings] = useState(false);
+
+  const loadEarnings = useCallback(async () => {
+    if (!token) return;
+    try {
+      setIsLoadingEarnings(true);
+      const res = await fetchDriverEarningsApi(token);
+      if (res && res.success && res.data?.day) {
+        setTodayEarnings(res.data.day);
+      }
+    } catch (err) {
+      console.warn('[HomeScreen] loadEarnings failed:', err);
+    } finally {
+      setIsLoadingEarnings(false);
+    }
+  }, [token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadEarnings();
+    }, [loadEarnings]),
+  );
 
   const isBusy = driverProfile?.currentShiftStatus === 'BUSY' || driverProfile?.currentShiftStatus === 'ON_DUTY';
   const isReady = driverProfile?.currentShiftStatus === 'ONLINE_READY';
@@ -68,13 +107,17 @@ export const HomeScreen = () => {
 
   // ─── Compute summary stats from real stops data ───────────────────────────
   const stats = useMemo(() => {
-    const assigned = stops.filter(s => s.status === 'PENDING' || s.status === 'ARRIVED').length;
+    // 1. Tổng số đơn/điểm giao được phân công trong tuyến hôm nay (15 đơn)
+    const assigned = stops.length || (route as any)?.stops?.length || 0;
+    // 2. Số đơn đã giao thành công
     const delivered = stops.filter(s => s.status === 'COMPLETED').length;
-    const codHeld = stops
+    // 3. Tiền COD thực tế tài xế đang giữ từ các đơn giao thành công trong ca
+    const codFromStops = stops
       .filter(s => s.status === 'COMPLETED')
       .reduce((sum, s) => sum + (s.order?.cod_amount ?? 0), 0);
+    const codHeld = codFromStops > 0 ? codFromStops : (shift?.cod_collected ?? 0);
     return { assigned, delivered, codHeld };
-  }, [stops]);
+  }, [stops, route, shift?.cod_collected]);
 
   // ─── Handle shift toggle ─────────────────────────────────────────────────
   const handleToggleShift = async () => {
@@ -125,7 +168,11 @@ export const HomeScreen = () => {
 
   // ─── Format COD amount ────────────────────────────────────────────────────
   const formatCod = (amount: number) => {
-    if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M`;
+    if (amount >= 1_000_000) {
+      const millions = amount / 1_000_000;
+      // Hiển thị 2 số thập phân rõ ràng (ví dụ 1.39M, 1.89M) khớp chuẩn với bên AccountScreen
+      return `${Number(millions.toFixed(2))}M`;
+    }
     if (amount >= 1_000) return `${(amount / 1_000).toFixed(0)}K`;
     return amount.toLocaleString('vi-VN');
   };
@@ -153,7 +200,7 @@ export const HomeScreen = () => {
               <View style={styles.vehicleInfo}>
                 <Truck color={COLORS.textSecondary} size={14} />
                 <Text style={styles.vehicleText}>
-                  {driverProfile.licensePlate} • {driverProfile.vehicleType}
+                  {driverProfile.licensePlate} • {formatVehicleType(driverProfile.vehicleType)}
                 </Text>
               </View>
             )}
@@ -289,6 +336,38 @@ export const HomeScreen = () => {
             bgColor="#EEF2FF"
           />
         </View>
+
+        {/* ── Earnings Shortcut Banner (Sau chiết khấu 15%) ─────────────────── */}
+        <TouchableOpacity
+          style={styles.earningsBanner}
+          activeOpacity={0.8}
+          onPress={() => (navigation as any).navigate('Account', { openEarningsModal: true })}
+        >
+          <View style={styles.earningsBannerLeft}>
+            <View style={styles.earningsIconBox}>
+              <TrendingUp color="#059669" size={20} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <View style={styles.earningsTitleRow}>
+                <Text style={styles.earningsBannerTitle}>Thu nhập thực nhận</Text>
+                <View style={styles.earningsCommissionBadge}>
+                  <Text style={styles.earningsCommissionText}>Đã trừ 15% CK</Text>
+                </View>
+              </View>
+              <Text style={styles.earningsAmount}>
+                {isLoadingEarnings ? (
+                  <ActivityIndicator size="small" color="#059669" />
+                ) : (
+                  `₫${(todayEarnings?.netEarnings ?? 0).toLocaleString('vi-VN')}`
+                )}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.earningsBannerRight}>
+            <Text style={styles.earningsDetailLink}>Chi tiết</Text>
+            <ChevronRight color="#059669" size={16} />
+          </View>
+        </TouchableOpacity>
 
         {/* ── Route Summary ──────────────────────────────────────────────── */}
         <Text style={styles.sectionTitle}>Tuyến đường hôm nay</Text>
@@ -656,5 +735,85 @@ const styles = StyleSheet.create({
   emptyRoute: {
     alignItems: 'center',
     paddingVertical: 32,
+  },
+
+  // ── Earnings Shortcut Banner ──
+  earningsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#ECFDF5',
+    borderRadius: SIZES.radius_md,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginTop: 10,
+    marginBottom: 6,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  earningsBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  earningsIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#D1FAE5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  earningsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  earningsBannerTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#065F46',
+    marginRight: 6,
+  },
+  earningsCommissionBadge: {
+    backgroundColor: '#DEF7EC',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 0.5,
+    borderColor: '#6EE7B7',
+  },
+  earningsCommissionText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#047857',
+  },
+  earningsAmount: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#047857',
+    letterSpacing: 0.2,
+  },
+  earningsBannerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  earningsDetailLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#059669',
+    marginRight: 2,
   },
 });
