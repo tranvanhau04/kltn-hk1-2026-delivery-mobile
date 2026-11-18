@@ -28,6 +28,7 @@ import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { markStopArrivedApi } from '../lib/api';
+import { emitLocation } from '../lib/socketClient';
 
 export interface LiveNavigationParams {
   destination: {
@@ -239,6 +240,13 @@ export const LiveNavigationScreen = () => {
             };
             prevLocationRef.current = updated;
             setCurrentLocation(updated);
+
+            // Emit live GPS coordinates to backend and dispatchers
+            console.log('📱 Mobile Emitting:', { lat: latitude, lng: longitude });
+            emitLocation({
+              latitude,
+              longitude,
+            });
 
             // STEP 2: 3D Navigation Camera update on every location tick
             if (followsUserRef.current && mapRef.current) {

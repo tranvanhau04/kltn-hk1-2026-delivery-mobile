@@ -43,7 +43,7 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { Stop } from '../../types/mobile';
+import { Stop, isNavigationDisabled } from '../../types/mobile';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 import { MainTabParamList } from '../../navigation/MainTabNavigator';
 import { getQueue } from '../../lib/offlineQueue';
@@ -62,6 +62,15 @@ export const StopListScreen = () => {
   const navigation = useNavigation<StopListNavProp>();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pendingSyncStopIds, setPendingSyncStopIds] = useState<Set<string>>(new Set());
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  // Tự động kiểm tra thời gian thực mỗi 10s để mở lại nút khi chạm mốc giờ hẹn
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Tải danh sách các điểm dừng đang có tác vụ chờ đồng bộ ngoại tuyến
   useFocusEffect(
@@ -115,7 +124,10 @@ export const StopListScreen = () => {
     return [...stops].sort((a, b) => a.sequence_no - b.sequence_no);
   }, [stops]);
 
-  // Thống kê nhanh tiến độ
+  // Bộ lọc trạng thái: 'ALL' | 'PENDING' | 'COMPLETED'
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'COMPLETED'>('ALL');
+
+  // Thống kê nhanh tiến độ (luôn tính trên toàn bộ mảng gốc sortedStops của tuyến)
   const stats = useMemo(() => {
     const total = sortedStops.length;
     const completed = sortedStops.filter((s) => s.status === 'COMPLETED').length;
@@ -124,9 +136,21 @@ export const StopListScreen = () => {
     return { total, completed, failed, pending };
   }, [sortedStops]);
 
+  // Danh sách điểm dừng sau khi áp dụng bộ lọc trạng thái
+  const displayedStops = useMemo(() => {
+    if (statusFilter === 'COMPLETED') {
+      return sortedStops.filter((s) => s.status === 'COMPLETED');
+    }
+    if (statusFilter === 'PENDING') {
+      return sortedStops.filter((s) => s.status !== 'COMPLETED' && s.status !== 'FAILED');
+    }
+    return sortedStops;
+  }, [sortedStops, statusFilter]);
+
   // ─── 2. Kéo để làm mới dữ liệu ──────────────────────────────────────────────
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
+    setStatusFilter('ALL');
     try {
       await refreshRoute();
     } finally {
@@ -207,8 +231,24 @@ export const StopListScreen = () => {
   };
 
   // ─── 5. Cấu hình hiển thị trạng thái (Màu sắc + Icon + Nhãn rõ ràng) ───────
-  const getStatusBadge = (status: Stop['status']) => {
-    switch (status) {
+  const getStatusBadge = (item: Stop) => {
+    const isRescheduled =
+      item.order?.status === 'RESCHEDULED' ||
+      !!item.rescheduled_date ||
+      !!item.order?.rescheduled_date ||
+      (item.status === 'SKIPPED' && !!(item.failure_reason || item.order?.failure_reason));
+
+    if (isRescheduled) {
+      return {
+        label: '📅 Hẹn giao lại',
+        color: '#D97706',
+        bgColor: '#FEF3C7',
+        borderColor: '#FCD34D',
+        icon: <Clock color="#D97706" size={13} />,
+      };
+    }
+
+    switch (item.status) {
       case 'COMPLETED':
         return {
           label: 'Đã giao',
@@ -260,10 +300,29 @@ export const StopListScreen = () => {
     }
   };
 
-  // ─── 6. Định dạng tiền tệ VNĐ ──────────────────────────────────────────────
+  // ─── 6. Định dạng tiền tệ VNĐ & Thời gian hẹn lại ─────────────────────────
   const formatCod = (amount?: number) => {
     if (!amount || amount <= 0) return '0 ₫';
     return `${amount.toLocaleString('vi-VN')} ₫`;
+  };
+
+  const formatRescheduleDate = (dateStr?: string | null) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return String(dateStr);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      const hours = d.getHours();
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      if (hours === 0 && mins === '00') {
+        return `${day}/${month}/${year}`;
+      }
+      return `${String(hours).padStart(2, '0')}:${mins} - ${day}/${month}/${year}`;
+    } catch {
+      return String(dateStr);
+    }
   };
 
   return (
@@ -303,18 +362,89 @@ export const StopListScreen = () => {
 
         {/* ─── Stats Overview Bar ─────────────────────────────────────────── */}
         <View style={styles.statsBar}>
-          <View style={styles.statPill}>
-            <Text style={styles.statPillLabel}>Tổng điểm:</Text>
-            <Text style={styles.statPillValue}>{stats.total}</Text>
-          </View>
-          <View style={[styles.statPill, { backgroundColor: '#FEF3C7' }]}>
-            <Text style={[styles.statPillLabel, { color: '#B45309' }]}>Chờ giao:</Text>
-            <Text style={[styles.statPillValue, { color: '#B45309' }]}>{stats.pending}</Text>
-          </View>
-          <View style={[styles.statPill, { backgroundColor: '#DCFCE7' }]}>
-            <Text style={[styles.statPillLabel, { color: '#15803D' }]}>Đã xong:</Text>
-            <Text style={[styles.statPillValue, { color: '#15803D' }]}>{stats.completed}</Text>
-          </View>
+          <TouchableOpacity
+            style={[
+              styles.statPill,
+              statusFilter === 'ALL' && styles.statPillActiveAll,
+            ]}
+            activeOpacity={0.7}
+            onPress={() => setStatusFilter('ALL')}
+          >
+            <Text
+              style={[
+                styles.statPillLabel,
+                statusFilter === 'ALL' && styles.statPillActiveTextAll,
+              ]}
+            >
+              Tổng điểm:
+            </Text>
+            <Text
+              style={[
+                styles.statPillValue,
+                statusFilter === 'ALL' && styles.statPillActiveValueAll,
+              ]}
+            >
+              {stats.total}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.statPill,
+              { backgroundColor: '#FEF3C7' },
+              statusFilter === 'PENDING' && styles.statPillActivePending,
+            ]}
+            activeOpacity={0.7}
+            onPress={() => setStatusFilter((prev) => (prev === 'PENDING' ? 'ALL' : 'PENDING'))}
+          >
+            <Text
+              style={[
+                styles.statPillLabel,
+                { color: '#B45309' },
+                statusFilter === 'PENDING' && styles.statPillActiveTextPending,
+              ]}
+            >
+              Chờ giao:
+            </Text>
+            <Text
+              style={[
+                styles.statPillValue,
+                { color: '#B45309' },
+                statusFilter === 'PENDING' && styles.statPillActiveValuePending,
+              ]}
+            >
+              {stats.pending}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.statPill,
+              { backgroundColor: '#DCFCE7' },
+              statusFilter === 'COMPLETED' && styles.statPillActiveCompleted,
+            ]}
+            activeOpacity={0.7}
+            onPress={() => setStatusFilter((prev) => (prev === 'COMPLETED' ? 'ALL' : 'COMPLETED'))}
+          >
+            <Text
+              style={[
+                styles.statPillLabel,
+                { color: '#15803D' },
+                statusFilter === 'COMPLETED' && styles.statPillActiveTextCompleted,
+              ]}
+            >
+              Đã xong:
+            </Text>
+            <Text
+              style={[
+                styles.statPillValue,
+                { color: '#15803D' },
+                statusFilter === 'COMPLETED' && styles.statPillActiveValueCompleted,
+              ]}
+            >
+              {stats.completed}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -340,9 +470,24 @@ export const StopListScreen = () => {
             <Text style={styles.reloadButtonText}>Làm mới tuyến</Text>
           </TouchableOpacity>
         </View>
+      ) : displayedStops.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconCircle}>
+            <Package color={COLORS.inactive} size={40} />
+          </View>
+          <Text style={[TYPOGRAPHY.title, { marginTop: 16 }]}>Không có điểm dừng phù hợp</Text>
+          <Text style={[TYPOGRAPHY.bodySecondary, styles.emptyText]}>
+            {statusFilter === 'COMPLETED'
+              ? 'Chưa có điểm dừng nào được hoàn thành trong ca này.'
+              : 'Tất cả các điểm dừng trong ca đều đã hoàn thành.'}
+          </Text>
+          <TouchableOpacity style={styles.reloadButton} onPress={() => setStatusFilter('ALL')}>
+            <Text style={styles.reloadButtonText}>Xem tất cả điểm dừng</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
-          data={sortedStops}
+          data={displayedStops}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           refreshControl={
@@ -356,9 +501,18 @@ export const StopListScreen = () => {
           renderItem={({ item }) => {
             const isCompleted = item.status === 'COMPLETED';
             const isFailed = item.status === 'FAILED';
-            const isDone = isCompleted || isFailed;
-            const badge = getStatusBadge(item.status);
+            const isRescheduled =
+              item.order?.status === 'RESCHEDULED' ||
+              !!item.rescheduled_date ||
+              !!item.order?.rescheduled_date ||
+              (item.status === 'SKIPPED' && !!(item.failure_reason || item.order?.failure_reason));
+            const isDone = isCompleted || isFailed || isRescheduled;
+            const isNavDisabled = isNavigationDisabled(item, currentTime);
+            const badge = getStatusBadge(item);
             const hasCod = item.order.cod_amount > 0;
+            const rawRescheduleDate = item.rescheduled_date || item.order?.rescheduled_date;
+            const rescheduleDateText = formatRescheduleDate(rawRescheduleDate);
+            const rescheduleReason = item.failure_reason || item.order?.failure_reason;
 
             return (
               <TouchableOpacity
@@ -377,6 +531,7 @@ export const StopListScreen = () => {
                       styles.sequenceBadge,
                       isCompleted && styles.sequenceBadgeSuccess,
                       isFailed && styles.sequenceBadgeFailed,
+                      isRescheduled && styles.sequenceBadgeRescheduled,
                     ]}
                   >
                     <Text style={styles.sequenceText}>#{item.sequence_no}</Text>
@@ -432,6 +587,34 @@ export const StopListScreen = () => {
                     </Text>
                   </View>
 
+                  {/* Notice Box nếu đơn bị Hẹn giao lại hoặc Giao thất bại */}
+                  {isRescheduled ? (
+                    <View style={styles.rescheduledNoticeBox}>
+                      <View style={styles.rescheduledNoticeHeader}>
+                        <Clock color="#D97706" size={13} style={{ marginRight: 6 }} />
+                        <Text style={styles.rescheduledNoticeTitle}>
+                          {rescheduleDateText
+                            ? `Hẹn giao lại: ${rescheduleDateText}`
+                            : 'Đã hẹn ngày giao lại'}
+                        </Text>
+                      </View>
+                      {rescheduleReason ? (
+                        <Text style={styles.rescheduledNoticeReason} numberOfLines={2}>
+                          Lý do: {rescheduleReason}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : isFailed && rescheduleReason ? (
+                    <View style={styles.failedNoticeBox}>
+                      <View style={styles.failedNoticeHeader}>
+                        <AlertCircle color="#B91C1C" size={13} style={{ marginRight: 6 }} />
+                        <Text style={styles.failedNoticeTitle} numberOfLines={2}>
+                          Lý do thất bại: {rescheduleReason}
+                        </Text>
+                      </View>
+                    </View>
+                  ) : null}
+
                   {/* COD Tag */}
                   <View style={styles.metaRow}>
                     {hasCod ? (
@@ -474,7 +657,8 @@ export const StopListScreen = () => {
 
                   {/* Nút Chỉ đường trực tiếp (In-App Live Navigation 3D) */}
                   <TouchableOpacity
-                    style={styles.actionBtn}
+                    style={[styles.actionBtn, isNavDisabled && styles.actionBtnDisabled]}
+                    disabled={isNavDisabled}
                     onPress={() =>
                       handleStartInAppNavigation(
                         item.order.lat,
@@ -488,10 +672,22 @@ export const StopListScreen = () => {
                     }
                     activeOpacity={0.7}
                   >
-                    <View style={[styles.actionIconCircle, { backgroundColor: '#ECFDF5' }]}>
-                      <Navigation color="#059669" size={16} />
+                    <View
+                      style={[
+                        styles.actionIconCircle,
+                        { backgroundColor: isNavDisabled ? '#F1F5F9' : '#ECFDF5' },
+                      ]}
+                    >
+                      <Navigation color={isNavDisabled ? '#94A3B8' : '#059669'} size={16} />
                     </View>
-                    <Text style={[styles.actionBtnText, { color: '#059669' }]}>Chỉ đường</Text>
+                    <Text
+                      style={[
+                        styles.actionBtnText,
+                        { color: isNavDisabled ? '#94A3B8' : '#059669' },
+                      ]}
+                    >
+                      Chỉ đường
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
@@ -562,6 +758,44 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: SIZES.radius_sm,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  statPillActiveAll: {
+    borderColor: '#334155',
+    backgroundColor: '#E2E8F0',
+  },
+  statPillActivePending: {
+    borderColor: '#D97706',
+    backgroundColor: '#FEF3C7',
+  },
+  statPillActiveCompleted: {
+    borderColor: '#16A34A',
+    backgroundColor: '#DCFCE7',
+  },
+  statPillActiveTextAll: {
+    color: '#0F172A',
+    fontWeight: '700',
+  },
+  statPillActiveValueAll: {
+    color: '#0F172A',
+    fontWeight: '800',
+  },
+  statPillActiveTextPending: {
+    color: '#92400E',
+    fontWeight: '700',
+  },
+  statPillActiveValuePending: {
+    color: '#92400E',
+    fontWeight: '800',
+  },
+  statPillActiveTextCompleted: {
+    color: '#166534',
+    fontWeight: '700',
+  },
+  statPillActiveValueCompleted: {
+    color: '#166534',
+    fontWeight: '800',
   },
   statPillLabel: {
     fontSize: 11,
@@ -619,6 +853,9 @@ const styles = StyleSheet.create({
   sequenceBadgeFailed: {
     backgroundColor: '#EF4444',
   },
+  sequenceBadgeRescheduled: {
+    backgroundColor: '#F59E0B',
+  },
   sequenceText: {
     color: '#FFF',
     fontWeight: 'bold',
@@ -659,6 +896,49 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#D97706',
+  },
+  rescheduledNoticeBox: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  rescheduledNoticeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rescheduledNoticeTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B45309',
+  },
+  rescheduledNoticeReason: {
+    fontSize: 12,
+    color: '#92400E',
+    marginTop: 3,
+  },
+  failedNoticeBox: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  failedNoticeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  failedNoticeTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B91C1C',
   },
   cardBody: {
     padding: SIZES.padding_md,
@@ -752,6 +1032,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingVertical: 12,
+  },
+  actionBtnDisabled: {
+    opacity: 0.55,
   },
   actionIconCircle: {
     width: 28,

@@ -42,29 +42,66 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (data && data.success && data.route) {
         const routeData = data.route;
         const rawStops = Array.isArray(data.stops) ? data.stops : [];
-        const mappedStops: Stop[] = rawStops.map((s, idx) => ({
-          id: s?.id || `stop-${idx}`,
-          route_id: s?.routeId || routeData.id,
-          order_id: s?.orderId || '',
-          sequence_no: typeof s?.sequenceNo === 'number' ? s.sequenceNo : idx + 1,
-          arrived_at: s?.arrivedAt || null,
-          status: (s?.status || 'PENDING') as Stop['status'],
-          order: {
-            id: s?.order?.id || s?.orderId || '',
-            code: s?.order?.code || `ORD-${idx + 1}`,
-            receiver_name: s?.order?.receiverName || 'Khách hàng',
-            receiver_phone: s?.order?.receiverPhone || '',
-            delivery_address: s?.order?.deliveryAddress || 'Địa chỉ giao hàng',
-            lat: Number(s?.order?.lat) || 10.8222,
-            lng: Number(s?.order?.lng) || 106.6875,
-            cod_amount: Number(s?.order?.codAmount) || 0,
-            weight_kg: Number((s?.order as any)?.weightKg) || undefined,
-            volume_m3: Number((s?.order as any)?.volumeM3) || undefined,
-            status: (s?.order?.status === 'DELIVERED' ? 'DELIVERED'
-              : s?.order?.status === 'FAILED' ? 'FAILED'
-              : 'PENDING') as Stop['order']['status'],
-          },
-        }));
+        const mappedStops: Stop[] = rawStops.map((s, idx) => {
+          const rawOrder = s?.order;
+          const pod = s?.pod;
+          const rescheduledDate =
+            s?.rescheduledDate || rawOrder?.rescheduledDate || pod?.rescheduledDate || null;
+          const failureReason =
+            s?.failureReason || rawOrder?.failureReason || pod?.failureReason || null;
+          const confirmedAt =
+            s?.confirmedAt || rawOrder?.confirmedAt || pod?.confirmedAt || null;
+
+          const rawStatus = rawOrder?.status;
+          let finalOrderStatus: Stop['order']['status'] = 'PENDING';
+          if (rawStatus === 'DELIVERED') {
+            finalOrderStatus = 'DELIVERED';
+          } else if (rawStatus === 'FAILED') {
+            finalOrderStatus = 'FAILED';
+          } else if (rawStatus === 'RESCHEDULED') {
+            finalOrderStatus = 'RESCHEDULED';
+          } else if (s?.status === 'SKIPPED' && rescheduledDate) {
+            finalOrderStatus = 'RESCHEDULED';
+          }
+
+          return {
+            id: s?.id || `stop-${idx}`,
+            route_id: s?.routeId || routeData.id,
+            order_id: s?.orderId || '',
+            sequence_no: typeof s?.sequenceNo === 'number' ? s.sequenceNo : idx + 1,
+            arrived_at: s?.arrivedAt || null,
+            status: (s?.status || 'PENDING') as Stop['status'],
+            rescheduled_date: rescheduledDate,
+            failure_reason: failureReason,
+            confirmed_at: confirmedAt,
+            pod: pod
+              ? {
+                  stop_id: pod.stopId || s?.id || '',
+                  photo_url: pod.photoUrl || null,
+                  cod_collected: Number(pod.codCollected) || 0,
+                  failure_reason: pod.failureReason || null,
+                  rescheduled_date: pod.rescheduledDate || null,
+                  confirmed_at: pod.confirmedAt || '',
+                }
+              : null,
+            order: {
+              id: rawOrder?.id || s?.orderId || '',
+              code: rawOrder?.code || `ORD-${idx + 1}`,
+              receiver_name: rawOrder?.receiverName || 'Khách hàng',
+              receiver_phone: rawOrder?.receiverPhone || '',
+              delivery_address: rawOrder?.deliveryAddress || 'Địa chỉ giao hàng',
+              lat: Number(rawOrder?.lat) || 10.8222,
+              lng: Number(rawOrder?.lng) || 106.6875,
+              cod_amount: Number(rawOrder?.codAmount) || 0,
+              weight_kg: Number((rawOrder as any)?.weightKg) || undefined,
+              volume_m3: Number((rawOrder as any)?.volumeM3) || undefined,
+              status: finalOrderStatus,
+              rescheduled_date: rescheduledDate,
+              failure_reason: failureReason,
+              confirmed_at: confirmedAt,
+            },
+          };
+        });
 
         let parsedPolyline: [number, number][] = [];
         if (Array.isArray(data.route.polyline)) {
@@ -166,7 +203,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const markStopArrived = (stopId: string) => {
     setStops((prevStops) =>
       prevStops.map((stop) =>
-        stop.id === stopId ? { ...stop, arrived_at: new Date().toISOString(), status: 'ARRIVED' } : stop
+        stop.id === stopId
+          ? {
+              ...stop,
+              arrived_at: new Date().toISOString(),
+              status: 'ARRIVED',
+              rescheduled_date: null,
+              order: stop.order
+                ? {
+                    ...stop.order,
+                    status: 'IN_TRANSIT',
+                    rescheduled_date: null,
+                  }
+                : stop.order,
+            }
+          : stop
       )
     );
   };

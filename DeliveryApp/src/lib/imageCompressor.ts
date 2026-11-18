@@ -18,9 +18,10 @@ const FALLBACK_LONG_EDGE = 1024; // px — dự phòng nếu ảnh quá lớn sa
  */
 export async function compressImageUnder1MB(uri: string): Promise<string> {
   try {
-    // 1. Kiểm tra kích thước gốc
+    // 1. Kiểm tra kích thước gốc: chỉ giữ nguyên nếu đã là JPEG chuẩn và <= 1MB
+    const isJpeg = /\.(jpe?g)$/i.test(uri);
     const info = await FileSystem.getInfoAsync(uri);
-    if (info.exists && 'size' in info && typeof info.size === 'number' && info.size <= MAX_SIZE_BYTES) {
+    if (info.exists && 'size' in info && typeof info.size === 'number' && info.size <= MAX_SIZE_BYTES && isJpeg) {
       return uri;
     }
 

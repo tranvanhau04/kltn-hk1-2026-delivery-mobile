@@ -39,7 +39,10 @@ export type Order = {
   cod_amount: number;
   weight_kg?: number;
   volume_m3?: number;
-  status: 'PENDING' | 'DELIVERED' | 'FAILED' | 'RESCHEDULED';
+  status: 'PENDING' | 'DELIVERED' | 'FAILED' | 'RESCHEDULED' | 'IN_TRANSIT';
+  rescheduled_date?: string | null;
+  failure_reason?: string | null;
+  confirmed_at?: string | null;
 };
 
 export type Stop = {
@@ -50,6 +53,10 @@ export type Stop = {
   arrived_at: string | null; // ISO String
   status: 'PENDING' | 'ARRIVED' | 'COMPLETED' | 'FAILED' | 'SKIPPED';
   order: Order; // Populated for convenience in mock state
+  rescheduled_date?: string | null;
+  failure_reason?: string | null;
+  confirmed_at?: string | null;
+  pod?: ProofOfDelivery | null;
 };
 
 export type ProofOfDelivery = {
@@ -60,3 +67,80 @@ export type ProofOfDelivery = {
   rescheduled_date: string | null;
   confirmed_at: string;
 };
+
+/**
+ * Kiểm tra điều kiện khóa tính năng dẫn đường (Chỉ đường / Bắt đầu di chuyển).
+ *
+ * 1. Đã giao thành công (COMPLETED / DELIVERED): LUÔN DISABLE.
+ * 2. Giao thất bại và KHÔNG có rescheduledDate (FAILED): LUÔN DISABLE.
+ * 3. Hẹn giao lại (RESCHEDULED hoặc có rescheduled_date / SKIPPED):
+ *    - CHƯA ĐẾN giờ hẹn (now < rescheduleTime): DISABLE.
+ *    - ĐÃ ĐẾN hoặc QUA giờ hẹn (now >= rescheduleTime): MỞ KHÓA LẠI (false).
+ * 4. Chờ giao bình thường (PENDING, ARRIVED, v.v.): MỞ KHÓA (false).
+ */
+export function isNavigationDisabled(
+  stop: {
+    status?: string;
+    rescheduled_date?: string | null;
+    failure_reason?: string | null;
+    order?: {
+      status?: string;
+      rescheduled_date?: string | null;
+      failure_reason?: string | null;
+    } | null;
+    pod?: {
+      rescheduled_date?: string | null;
+    } | null;
+  },
+  now: number = Date.now(),
+): boolean {
+  // Điểm đã đến nơi (ARRIVED): Không khóa tác nghiệp
+  if (stop.status === 'ARRIVED') {
+    return false;
+  }
+
+  const rawRescheduleDate =
+    stop.rescheduled_date || stop.order?.rescheduled_date || stop.pod?.rescheduled_date;
+
+  const isRescheduled =
+    stop.order?.status === 'RESCHEDULED' ||
+    Boolean(rawRescheduleDate) ||
+    (stop.status === 'SKIPPED' && Boolean(stop.failure_reason || stop.order?.failure_reason));
+
+  // 1. Trạng thái 1 – Đã giao thành công: LUÔN DISABLE
+  const isCompleted = stop.status === 'COMPLETED' || stop.order?.status === 'DELIVERED';
+  if (isCompleted) {
+    return true;
+  }
+
+  // 2. Trạng thái 2 – Giao thất bại thực sự (không có lịch hẹn lại): LUÔN DISABLE
+  const isFailed = (stop.status === 'FAILED' || stop.order?.status === 'FAILED') && !isRescheduled;
+  if (isFailed) {
+    return true;
+  }
+
+  // 3. Trạng thái 3 – Hẹn giao lại:
+  if (isRescheduled) {
+    if (rawRescheduleDate) {
+      const rescheduleTime = new Date(rawRescheduleDate).getTime();
+      if (!isNaN(rescheduleTime)) {
+        // Nếu CHƯA ĐẾN giờ hẹn -> DISABLE
+        if (now < rescheduleTime) {
+          return true;
+        }
+        // Nếu ĐÃ ĐẾN hoặc QUA giờ hẹn -> MỞ KHÓA LẠI
+        return false;
+      }
+    }
+    // Nếu có cờ hẹn lại nhưng chưa có ngày cụ thể, khóa an toàn
+    return true;
+  }
+
+  // Nếu stop ở trạng thái SKIPPED đơn thuần không có hẹn lại
+  if (stop.status === 'SKIPPED') {
+    return true;
+  }
+
+  // 4. Các trạng thái chờ giao bình thường (PENDING, ARRIVED, ASSIGNED...): MỞ KHÓA
+  return false;
+}

@@ -207,6 +207,7 @@ export function emitLocation(payload: EmitLocationPayload): boolean {
     return false;
   }
 
+  console.log('📱 Mobile Emitting:', { lat: payload.latitude, lng: payload.longitude });
   socket.emit(
     'update_location',
     {

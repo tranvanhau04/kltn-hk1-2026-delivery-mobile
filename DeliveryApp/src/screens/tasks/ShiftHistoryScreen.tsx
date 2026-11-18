@@ -65,9 +65,9 @@ export const ShiftHistoryScreen = () => {
       try {
         const res = await fetchShiftHistoryApi(token, targetPage, 20);
         if (res && res.success) {
-          setShifts(res.items);
-          setTotal(res.total);
-          setPage(res.page);
+          setShifts(res.items || res.data || []);
+          setTotal(res.total ?? 0);
+          setPage(res.page ?? 1);
         }
       } catch (err) {
         console.warn('[ShiftHistoryScreen] Load history error:', err);
