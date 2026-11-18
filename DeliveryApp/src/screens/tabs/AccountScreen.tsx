@@ -49,8 +49,6 @@ import {
   Clock,
   Banknote,
 } from 'lucide-react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../navigation/RootNavigator';
 import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -62,8 +60,6 @@ import {
   ApiAccountSummaryResponse,
   ApiShiftHistoryItem,
   ApiDriverEarningsResponse,
-  ApiEarningsPeriod,
-  ApiEarningsOrderBreakdown,
 } from '../../lib/api';
 import { disconnectSocket } from '../../lib/socketClient';
 import { stopTracking } from '../../services/LocationService';
@@ -203,7 +199,7 @@ export const AccountScreen = () => {
 
   // Summary state
   const [accountData, setAccountData] = useState<ApiAccountSummaryResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [_isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Earnings state (Day / Week / Month with 15% platform commission)

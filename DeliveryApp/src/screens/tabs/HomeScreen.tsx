@@ -9,7 +9,7 @@
  *
  * Shift toggle uses optimistic update with rollback on API failure.
  */
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,

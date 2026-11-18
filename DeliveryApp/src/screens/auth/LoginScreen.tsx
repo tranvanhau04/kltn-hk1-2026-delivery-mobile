@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Eye, EyeOff, Fingerprint, ArrowRight } from 'lucide-react-native';
-import { COLORS, SIZES, TYPOGRAPHY, COMMON_STYLES } from '../../theme/theme';
+import { COLORS, SIZES, COMMON_STYLES } from '../../theme/theme';
 import { useAuth } from '../../context/AuthContext';
 import { BrandLogo } from '../../components/BrandLogo';
 
